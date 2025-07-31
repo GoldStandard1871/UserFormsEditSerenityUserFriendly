@@ -1,0 +1,18 @@
+.s-site-logo-img {
+  content: url(../../Serenity.Assets/logo/white-128.png);
+}
+
+.s-TranslationGrid input.custom-text {
+  width: 100%;
+  height: 23px;
+  padding: 0 3px;
+}
+
+.s-PermissionCheckEditor {
+  min-height: 450px;
+}
+
+/* Import UserFormEditor styles */
+@import url('userformeditor.css');
+@import url('simpleform.css');
+@import url('fieldorder.css');

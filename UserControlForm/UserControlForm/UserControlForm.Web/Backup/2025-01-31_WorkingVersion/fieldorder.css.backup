@@ -1,0 +1,352 @@
+/* Field Drag Controls */
+.field-drag-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    margin-right: 10px;
+    float: left;
+    z-index: 10;
+    position: relative;
+}
+
+.s-FormFieldOrderDialog .field {
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.field.dragging {
+    opacity: 0.5;
+    background: #e3f2fd;
+}
+
+.field.drag-over {
+    border-top: 3px solid #007bff;
+    padding-top: 10px;
+}
+
+/* Gizli alan stilleri */
+.field-hidden,
+.field.field-hidden {
+    position: relative;
+}
+
+/* Alan gizlendiğinde label ve editor'ü gizle, kontroller görünsün */
+.field-hidden label,
+.field-hidden .caption,
+.field-hidden .editor,
+.field-hidden > div:not(.field-drag-controls),
+.field.field-hidden label,
+.field.field-hidden .caption,
+.field.field-hidden .editor,
+.field.field-hidden > div:not(.field-drag-controls) {
+    display: none !important;
+}
+
+/* Kontroller her zaman görünür olsun */
+.field-hidden .field-drag-controls {
+    opacity: 1;
+    display: inline-flex !important;
+}
+
+/* Show Controls kapalıyken gizli alanları tamamen gizle */
+.s-FormFieldOrderDialog.controls-hidden .field-hidden {
+    display: none !important;
+}
+
+/* Field-hidden sınıfı olan alanları gizle */
+.s-FormFieldOrderDialog .field.field-hidden:not(.field-hidden-showing) {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.drag-handle {
+    cursor: grab;
+    padding: 5px;
+    color: #666;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    transition: all 0.2s;
+}
+
+.drag-handle:hover {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.field-drag-controls button {
+    padding: 5px 8px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+}
+
+.field-drag-controls button:hover {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.field-drag-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.field-drag-controls .move-up,
+.field-drag-controls .move-down,
+.field-drag-controls .move-to-top {
+    padding: 5px 6px;
+    font-size: 12px;
+}
+
+.field-drag-controls .move-to-top {
+    background: #17a2b8;
+    color: white;
+    border-color: #17a2b8;
+}
+
+.field-drag-controls .move-to-top:hover {
+    background: #138496;
+    border-color: #117a8b;
+}
+
+.field-drag-controls .toggle-visibility {
+    padding: 5px 8px;
+    cursor: pointer;
+}
+
+.field-drag-controls .field-width-select {
+    padding: 5px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 12px;
+    min-width: 100px;
+    transition: all 0.2s;
+}
+
+.field-drag-controls .field-width-select:hover {
+    border-color: #007bff;
+}
+
+.field-drag-controls .field-width-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+/* Dialog genişliğini artır */
+.s-FormFieldOrderDialog {
+    width: 1200px !important;
+    max-width: 95% !important;
+}
+
+.s-FormFieldOrderDialog .s-Dialog {
+    width: 100% !important;
+}
+
+.s-FormFieldOrderDialog .s-DialogContent {
+    overflow: visible;
+}
+
+/* Form container için Bootstrap row */
+.s-FormFieldOrderDialog .s-PropertyGrid .categories,
+.s-FormFieldOrderDialog .categories {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    margin-left: -15px !important;
+    margin-right: -15px !important;
+    width: auto !important;
+}
+
+/* Clearfix for float layout */
+.s-FormFieldOrderDialog .s-PropertyGrid .categories:after,
+.s-FormFieldOrderDialog .categories:after,
+.s-FormFieldOrderDialog .clearfix:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.s-FormFieldOrderDialog .clearfix:before,
+.s-FormFieldOrderDialog .s-PropertyGrid .categories:before,
+.s-FormFieldOrderDialog .categories:before {
+    content: "";
+    display: table;
+}
+
+/* Bootstrap grid sistemi için genel field düzeni */
+.s-FormFieldOrderDialog .field,
+.s-FormFieldOrderDialog .categories .field {
+    position: relative !important;
+    min-height: 1px !important;
+    padding-right: 15px !important;
+    padding-left: 15px !important;
+    box-sizing: border-box !important;
+}
+
+/* Tüm bootstrap col sınıfları için temel stil */
+.s-FormFieldOrderDialog .field[class*="col-"],
+.s-FormFieldOrderDialog .categories .field[class*="col-"] {
+    position: relative !important;
+    min-height: 1px !important;
+    padding-right: 15px !important;
+    padding-left: 15px !important;
+}
+
+/* Bootstrap responsive grid sistemi */
+.field.col-12,
+.s-FormFieldOrderDialog .field.col-12,
+.s-FormFieldOrderDialog .categories .field.col-12 {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+}
+
+@media (min-width: 576px) {
+    .field.col-sm-6,
+    .s-FormFieldOrderDialog .field.col-sm-6 {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+    }
+    .field.col-sm-12,
+    .s-FormFieldOrderDialog .field.col-sm-12 {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .field.col-md-4,
+    .s-FormFieldOrderDialog .field.col-md-4 {
+        flex: 0 0 33.33333% !important;
+        max-width: 33.33333% !important;
+    }
+    .field.col-md-6,
+    .s-FormFieldOrderDialog .field.col-md-6 {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+    }
+    .field.col-md-9,
+    .s-FormFieldOrderDialog .field.col-md-9 {
+        flex: 0 0 75% !important;
+        max-width: 75% !important;
+    }
+    .field.col-md-12,
+    .s-FormFieldOrderDialog .field.col-md-12 {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .field.col-lg-4,
+    .s-FormFieldOrderDialog .field.col-lg-4 {
+        flex: 0 0 33.33333% !important;
+        max-width: 33.33333% !important;
+    }
+    .field.col-lg-6,
+    .s-FormFieldOrderDialog .field.col-lg-6 {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+    }
+    .field.col-lg-9,
+    .s-FormFieldOrderDialog .field.col-lg-9 {
+        flex: 0 0 75% !important;
+        max-width: 75% !important;
+    }
+    .field.col-lg-12,
+    .s-FormFieldOrderDialog .field.col-lg-12 {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+/* Toolbar buttons */
+.save-order-button {
+    background: #28a745;
+    color: white;
+}
+
+.save-order-button:hover {
+    background: #218838;
+}
+
+.reset-order-button {
+    background: #6c757d;
+    color: white;
+}
+
+.reset-order-button:hover {
+    background: #5a6268;
+}
+
+/* Field içindeki inputların tam genişlik alması için */
+.s-FormFieldOrderDialog .field input,
+.s-FormFieldOrderDialog .field textarea,
+.s-FormFieldOrderDialog .field select {
+    width: 100% !important;
+}
+
+/* Label ve input düzenlemesi */
+.s-FormFieldOrderDialog .field label.caption {
+    display: block;
+    margin-bottom: 5px;
+    padding-left: 0 !important;
+    text-align: left !important;
+}
+
+/* Field içeriğinin hizalanması */
+.s-FormFieldOrderDialog .field .editor {
+    padding-left: 0 !important;
+}
+
+/* Kontrollerin field içindeki konumu */
+.s-FormFieldOrderDialog .field {
+    position: relative;
+}
+
+.s-FormFieldOrderDialog .field-drag-controls {
+    position: relative;
+    margin-bottom: 5px;
+}
+
+/* Responsive - Mobile öncelikli */
+@media (max-width: 575px) {
+    .s-FormFieldOrderDialog .field {
+        width: 100% !important;
+    }
+}
+
+/* Show Hidden Fields aktif olduğunda gizli alanları göster */
+.s-FormFieldOrderDialog.show-hidden-fields .field.field-hidden-showing {
+    opacity: 0.6 !important;
+    background-color: #fff3cd !important;
+}
+
+/* Show Hidden Fields butonunun stili */
+.show-hidden-fields-button {
+    background: #fd7e14;
+    color: white;
+}
+
+.show-hidden-fields-button:hover {
+    background: #e66a00;
+}

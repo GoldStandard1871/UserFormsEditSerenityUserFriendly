@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Drop Test</title>
+    <style>
+        .container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+        .left-panel {
+            width: 200px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .right-panel {
+            flex: 1;
+            min-height: 300px;
+            border: 2px dashed #ccc;
+            padding: 10px;
+        }
+        .draggable {
+            padding: 10px;
+            margin: 5px;
+            background: #f0f0f0;
+            cursor: move;
+        }
+        .draggable:hover {
+            background: #e0e0e0;
+        }
+        .right-panel.drag-over {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Drag and Drop Test</h1>
+    <div class="container">
+        <div class="left-panel">
+            <h3>Drag These Items</h3>
+            <div class="draggable" draggable="true" data-type="text">Text Input</div>
+            <div class="draggable" draggable="true" data-type="number">Number Input</div>
+            <div class="draggable" draggable="true" data-type="email">Email Input</div>
+        </div>
+        <div class="right-panel" id="dropZone">
+            <p>Drop items here</p>
+        </div>
+    </div>
+
+    <script>
+        const draggables = document.querySelectorAll('.draggable');
+        const dropZone = document.getElementById('dropZone');
+        
+        // Add drag start event to draggable items
+        draggables.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                const type = e.target.getAttribute('data-type');
+                console.log('Drag started:', type);
+                e.dataTransfer.setData('text/plain', type);
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+        
+        // Add drag over event to drop zone
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        
+        // Add drag leave event to drop zone
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+        
+        // Add drop event to drop zone
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            const type = e.dataTransfer.getData('text/plain');
+            console.log('Dropped:', type);
+            
+            if (type) {
+                const newItem = document.createElement('div');
+                newItem.textContent = `Dropped: ${type}`;
+                newItem.style.padding = '10px';
+                newItem.style.margin = '5px';
+                newItem.style.background = '#ddd';
+                dropZone.appendChild(newItem);
+            }
+        });
+    </script>
+</body>
+</html>

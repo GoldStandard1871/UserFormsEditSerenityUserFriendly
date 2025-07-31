@@ -1,0 +1,64 @@
+/* Simple Form Designer Styles */
+.simple-form-designer {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.simple-form-designer h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.add-field-btn {
+    margin-bottom: 20px;
+}
+
+.fields-container {
+    max-width: 600px;
+}
+
+.field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: opacity 0.3s;
+}
+
+.field-row.hidden {
+    opacity: 0.5;
+    background: #f5f5f5;
+}
+
+.field-content {
+    flex: 1;
+}
+
+.field-content .field-label {
+    width: 100%;
+}
+
+.field-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.field-controls button {
+    padding: 2px 8px;
+}
+
+/* Save button style */
+.save-layout-button {
+    background: #28a745;
+    color: white;
+}
+
+.save-layout-button:hover {
+    background: #218838;
+}
