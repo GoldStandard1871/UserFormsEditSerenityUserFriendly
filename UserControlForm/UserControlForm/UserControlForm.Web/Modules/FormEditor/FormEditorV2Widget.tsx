@@ -1,0 +1,688 @@
+import { Decorators, Widget, notifySuccess, notifyError } from "@serenity-is/corelib";
+import { FormEditorV2Service } from "../ServerTypes/FormEditor/FormEditorV2Service";
+import { SaveUserSettingsRequest, GetUserSettingsRequest } from "../ServerTypes/FormEditor/FormEditorV2Row";
+import { FormFieldSettings, FormLayoutSettings } from "./FormEditorV2Interfaces";
+
+interface ExtendedFieldSettings extends FormFieldSettings {
+    hidden?: boolean;
+    required?: boolean;
+}
+
+interface ExtendedLayoutSettings extends FormLayoutSettings {
+    showWidthControls?: boolean;
+}
+
+@Decorators.registerClass('UserControlForm.FormEditor.FormEditorV2Widget')
+export class FormEditorV2Widget extends Widget<any> {
+    private layoutSettings: ExtendedLayoutSettings = { widthMode: 'normal', formOrder: [], showWidthControls: true };
+    private fieldSettings: Map<string, ExtendedFieldSettings> = new Map();
+    private container: JQuery;
+
+    constructor(container: JQuery) {
+        super(container);
+        this.container = container;
+        this.container.addClass('form-editor-v2');
+        this.init();
+    }
+
+    private init(): void {
+        console.log('🚀 FormEditorV2Widget initializing');
+        
+        // Clear container
+        this.container.empty();
+        
+        // Create structure
+        this.createToolbar();
+        this.createFormsContainer();
+        
+        // Render forms
+        this.renderForms();
+        
+        // Bind events
+        this.bindEvents();
+        
+        // Load settings after initial render
+        this.loadSettings();
+        
+        console.log('🚀 FormEditorV2Widget initialization complete');
+    }
+
+    private createToolbar(): void {
+        const toolbar = $(`
+            <div class="form-editor-toolbar">
+                <button type="button" class="btn btn-primary save-btn">
+                    <i class="fa fa-save"></i> Kaydet
+                </button>
+                <button type="button" class="btn btn-default reset-btn">
+                    <i class="fa fa-refresh"></i> Varsayılana Dön
+                </button>
+                <span class="toolbar-separator"></span>
+                <button type="button" class="btn btn-default toggle-width-controls-btn">
+                    <i class="fa fa-sliders"></i> Genişlik Ayarlarını <span class="toggle-text">Gizle</span>
+                </button>
+            </div>
+        `);
+        
+        this.container.append(toolbar);
+    }
+
+    private createFormsContainer(): void {
+        this.container.append('<div class="forms-container width-mode-normal"></div>');
+    }
+
+    private renderForms(): void {
+        console.log('🎨 renderForms() - Starting form render');
+        const formsContainer = this.container.find('.forms-container');
+        formsContainer.empty();
+        console.log('🎨 renderForms() - Forms container found:', formsContainer.length);
+        
+        const forms = [
+            {
+                id: 'form1',
+                title: 'Müşteri Bilgileri',
+                fields: [
+                    { id: 'f1', label: 'Ad', type: 'text', width: 50 },
+                    { id: 'f2', label: 'Soyad', type: 'text', width: 50 },
+                    { id: 'f3', label: 'TC Kimlik', type: 'text', width: 50 },
+                    { id: 'f4', label: 'Doğum Tarihi', type: 'date', width: 50 }
+                ]
+            },
+            {
+                id: 'form2',
+                title: 'İletişim Bilgileri',
+                fields: [
+                    { id: 'f5', label: 'Telefon', type: 'tel', width: 50 },
+                    { id: 'f6', label: 'E-posta', type: 'email', width: 50 },
+                    { id: 'f7', label: 'Adres', type: 'textarea', width: 100 }
+                ]
+            },
+            {
+                id: 'form3',
+                title: 'Adres Bilgileri',
+                fields: [
+                    { id: 'f8', label: 'İl', type: 'select', width: 50 },
+                    { id: 'f9', label: 'İlçe', type: 'select', width: 50 },
+                    { id: 'f10', label: 'Mahalle', type: 'text', width: 100 }
+                ]
+            }
+        ];
+
+        forms.forEach((form, idx) => {
+            console.log(`🎨 renderForms() - Processing form ${form.id}`);
+            const formSettings = this.fieldSettings.get(form.id);
+            const isCollapsed = formSettings?.collapsed || false;
+            
+            const formHtml = $(`
+                <div class="form-section" data-form-id="${form.id}">
+                    <div class="form-header">
+                        <span class="drag-handle form-drag-handle" title="Sürükleyerek sırayı değiştirin">
+                            <i class="fa fa-arrows-v"></i>
+                        </span>
+                        <span class="form-title">
+                            <i class="fa fa-chevron-${isCollapsed ? 'right' : 'down'} toggle-icon"></i>
+                            ${form.title}
+                        </span>
+                    </div>
+                    <div class="form-body" style="${isCollapsed ? 'display: none;' : ''}">
+                        <div class="fields-area" data-form-id="${form.id}"></div>
+                    </div>
+                </div>
+            `);
+
+            const fieldsArea = formHtml.find('.fields-area');
+            console.log(`🎨 renderForms() - Form ${form.id} fields area:`, fieldsArea.length);
+            console.log(`🎨 renderForms() - Fields area classes:`, fieldsArea.attr('class'));
+            
+            // Render fields
+            form.fields.forEach(field => {
+                const fieldSettings = this.fieldSettings.get(field.id);
+                const savedWidth = fieldSettings?.width || field.width;
+                const isHidden = fieldSettings?.hidden || false;
+                const isRequired = fieldSettings?.required || false;
+                
+                console.log(`🎨 Field ${field.id}: width=${savedWidth}%, hidden=${isHidden}, required=${isRequired}, settings=`, fieldSettings);
+                
+                if (isHidden) {
+                    console.log(`🎨 Field ${field.id} skipped - hidden`);
+                    return; // Skip hidden fields
+                }
+                
+                // Calculate proper width styles
+                let widthStyle = 'width: 100%;';
+                let flexStyle = '';
+                
+                switch(savedWidth) {
+                    case 25:
+                        widthStyle = 'width: calc(25% - 7.5px);';
+                        flexStyle = 'flex: 0 0 calc(25% - 7.5px);';
+                        break;
+                    case 50:
+                        widthStyle = 'width: calc(50% - 5px);';
+                        flexStyle = 'flex: 0 0 calc(50% - 5px);';
+                        break;
+                    case 75:
+                        widthStyle = 'width: calc(75% - 2.5px);';
+                        flexStyle = 'flex: 0 0 calc(75% - 2.5px);';
+                        break;
+                    case 100:
+                        widthStyle = 'width: 100%;';
+                        flexStyle = 'flex: 0 0 100%;';
+                        break;
+                }
+                
+                const fieldHtml = $(`
+                    <div class="field-item ${isRequired ? 'required-field' : ''}" data-field-id="${field.id}" data-width="${savedWidth}" style="${widthStyle} ${flexStyle}">
+                        <div class="field-content">
+                            <button type="button" class="btn btn-xs btn-danger hide-field-btn" title="Alanı Gizle" style="position: absolute; top: 2px; right: 2px; z-index: 10;">
+                                <i class="fa fa-eye-slash"></i>
+                            </button>
+                            <label>
+                                ${field.label}
+                                ${isRequired ? '<span class="required-star">*</span>' : ''}
+                            </label>
+                            ${this.createInput(field.type)}
+                            <div class="field-controls" ${this.layoutSettings.showWidthControls === false ? 'style="display: none;"' : ''}>
+                                <div class="field-controls-row">
+                                    <select class="width-select" data-field-id="${field.id}">
+                                        <option value="25" ${savedWidth === 25 ? 'selected' : ''}>25%</option>
+                                        <option value="50" ${savedWidth === 50 ? 'selected' : ''}>50%</option>
+                                        <option value="75" ${savedWidth === 75 ? 'selected' : ''}>75%</option>
+                                        <option value="100" ${savedWidth === 100 ? 'selected' : ''}>100%</option>
+                                    </select>
+                                    <label class="required-checkbox-label">
+                                        <input type="checkbox" class="required-checkbox" data-field-id="${field.id}" ${isRequired ? 'checked' : ''} />
+                                        Zorunlu
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                fieldsArea.append(fieldHtml);
+                console.log(`🎨 Field ${field.id} appended to fields area. Field width style:`, fieldHtml.attr('style'));
+                
+                // Verify hide button is rendered
+                const hideBtn = fieldHtml.find('.hide-field-btn');
+                console.log(`🎨 Field ${field.id} hide button found:`, hideBtn.length, 'visibility:', hideBtn.is(':visible'));
+            });
+            
+            // Add hidden fields indicator
+            const hiddenCount = form.fields.filter(f => this.fieldSettings.get(f.id)?.hidden).length;
+            if (hiddenCount > 0) {
+                fieldsArea.after(`
+                    <div class="hidden-fields-info" style="padding: 10px; background: #f8f9fa; border-top: 1px solid #dee2e6;">
+                        <i class="fa fa-info-circle"></i> ${hiddenCount} alan gizli. 
+                        <button type="button" class="btn btn-xs btn-info show-hidden-btn" data-form-id="${form.id}">
+                            Gizli Alanları Göster
+                        </button>
+                    </div>
+                `);
+            }
+            
+            formsContainer.append(formHtml);
+            
+            // Debug flex layout after adding form
+            const finalFieldsArea = formHtml.find('.fields-area');
+            console.log(`🎨 Form ${form.id} final fields area CSS:`);
+            console.log('  - display:', finalFieldsArea.css('display'));
+            console.log('  - flex-wrap:', finalFieldsArea.css('flex-wrap'));
+            console.log('  - gap:', finalFieldsArea.css('gap'));
+            console.log('  - children count:', finalFieldsArea.children('.field-item').length);
+            console.log('  - computed styles:', window.getComputedStyle(finalFieldsArea[0]));
+            
+            // Force apply CSS if needed
+            if (finalFieldsArea.css('display') !== 'flex') {
+                console.warn('⚠️ Fields area not flex! Force applying CSS...');
+                finalFieldsArea.css({
+                    'display': 'flex',
+                    'flex-wrap': 'wrap',
+                    'gap': '10px',
+                    'align-items': 'flex-start'
+                });
+            }
+            
+            // Check individual field items
+            finalFieldsArea.children('.field-item').each(function(i) {
+                const $field = $(this);
+                const dataWidth = $field.attr('data-width');
+                const computedWidth = $field.css('width');
+                const computedFlex = $field.css('flex');
+                
+                console.log(`    Field ${i}: width=${computedWidth}, flex=${computedFlex}, data-width=${dataWidth}%`);
+                
+                // Force apply width and flex if not correct
+                if (dataWidth) {
+                    const expectedWidth = `calc(${dataWidth}% - 10px)`;
+                    if (computedWidth !== expectedWidth) {
+                        console.warn(`    ⚠️ Field ${i} width mismatch. Expected: ${expectedWidth}, Got: ${computedWidth}`);
+                        $field.css({
+                            'width': expectedWidth,
+                            'flex': `0 0 ${expectedWidth}`,
+                            'box-sizing': 'border-box'
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    private createInput(type: string): string {
+        switch (type) {
+            case 'textarea':
+                return '<textarea class="form-control"></textarea>';
+            case 'select':
+                return '<select class="form-control"><option>Seçiniz</option></select>';
+            default:
+                return `<input type="${type}" class="form-control" />`;
+        }
+    }
+
+    private bindEvents(): void {
+        const self = this;
+        
+        // Save button
+        this.container.on('click', '.save-btn', function() {
+            self.saveSettings();
+        });
+        
+        // Reset button
+        this.container.on('click', '.reset-btn', function() {
+            if (confirm('Tüm ayarlar sıfırlanacak. Emin misiniz?')) {
+                self.resetSettings();
+            }
+        });
+        
+        // Toggle width controls button
+        this.container.on('click', '.toggle-width-controls-btn', function() {
+            const $btn = $(this);
+            const $toggleText = $btn.find('.toggle-text');
+            const widthControls = self.container.find('.field-controls');
+            
+            if (widthControls.is(':visible')) {
+                widthControls.slideUp(200);
+                $toggleText.text('Göster');
+                self.layoutSettings.showWidthControls = false;
+            } else {
+                widthControls.slideDown(200);
+                $toggleText.text('Gizle');
+                self.layoutSettings.showWidthControls = true;
+            }
+        });
+        
+        // Form header toggle
+        this.container.on('click', '.form-header', function(e) {
+            if ($(e.target).closest('.drag-handle').length) return;
+            
+            const $header = $(this);
+            const $body = $header.next('.form-body');
+            const $icon = $header.find('.toggle-icon');
+            const formId = $header.parent().data('form-id');
+            
+            if ($body.is(':visible')) {
+                $body.slideUp(200);
+                $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+                self.updateFormSetting(formId, { collapsed: true });
+            } else {
+                $body.slideDown(200);
+                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                self.updateFormSetting(formId, { collapsed: false });
+            }
+        });
+        
+        // Field width change
+        this.container.on('change', '.width-select', function() {
+            const $select = $(this);
+            const fieldId = $select.data('field-id');
+            const newWidth = parseInt($select.val() as string);
+            const $field = $select.closest('.field-item');
+            
+            // Update width with proper flex calculation
+            let widthCalc = '100%';
+            let flexBasis = '100%';
+            
+            switch(newWidth) {
+                case 25:
+                    widthCalc = 'calc(25% - 7.5px)';
+                    flexBasis = 'calc(25% - 7.5px)';
+                    break;
+                case 50:
+                    widthCalc = 'calc(50% - 5px)';
+                    flexBasis = 'calc(50% - 5px)';
+                    break;
+                case 75:
+                    widthCalc = 'calc(75% - 2.5px)';
+                    flexBasis = 'calc(75% - 2.5px)';
+                    break;
+                case 100:
+                    widthCalc = '100%';
+                    flexBasis = '100%';
+                    break;
+            }
+            
+            $field.css({
+                'width': widthCalc,
+                'flex': `0 0 ${flexBasis}`
+            }).attr('data-width', newWidth);
+            
+            self.updateFieldSetting(fieldId, { width: newWidth });
+            
+            console.log(`Width changed for field ${fieldId}: ${newWidth}% - CSS: ${widthCalc}`);
+        });
+        
+        // Hide field button
+        this.container.on('click', '.hide-field-btn', function(e) {
+            console.log('👁️ Hide button clicked');
+            e.stopPropagation();
+            const $field = $(this).closest('.field-item');
+            const fieldId = $field.data('field-id');
+            
+            console.log(`👁️ Hiding field ${fieldId}`);
+            
+            if (confirm('Bu alanı gizlemek istediğinize emin misiniz?')) {
+                $field.fadeOut(200, function() {
+                    self.updateFieldSetting(fieldId, { hidden: true });
+                    console.log(`👁️ Field ${fieldId} marked as hidden, re-rendering forms`);
+                    self.renderForms(); // Re-render to update hidden count
+                });
+            }
+        });
+        
+        // Show hidden fields button
+        this.container.on('click', '.show-hidden-btn', function() {
+            const formId = $(this).data('form-id');
+            
+            // Reset hidden status for all fields in this form
+            self.fieldSettings.forEach((settings, fieldId) => {
+                if (fieldId.startsWith('f')) { // Field IDs start with 'f'
+                    settings.hidden = false;
+                }
+            });
+            
+            self.renderForms();
+        });
+        
+        // Required field checkbox
+        this.container.on('change', '.required-checkbox', function() {
+            const $checkbox = $(this);
+            const fieldId = $checkbox.data('field-id');
+            const isRequired = $checkbox.is(':checked');
+            const $field = $checkbox.closest('.field-item');
+            const $label = $field.find('label').first();
+            
+            self.updateFieldSetting(fieldId, { required: isRequired });
+            
+            if (isRequired) {
+                $field.addClass('required-field');
+                if (!$label.find('.required-star').length) {
+                    $label.append(' <span class="required-star">*</span>');
+                }
+            } else {
+                $field.removeClass('required-field');
+                $label.find('.required-star').remove();
+            }
+            
+            console.log(`Field ${fieldId} required status changed to: ${isRequired}`);
+        });
+        
+        // Simple drag and drop
+        this.setupDragAndDrop();
+    }
+
+    private setupDragAndDrop(): void {
+        console.log('🖱️ Setting up drag and drop handlers');
+        const self = this;
+        let draggedElement: HTMLElement | null = null;
+        let placeholder: JQuery | null = null;
+        
+        // Form dragging with visual feedback
+        this.container.on('mousedown', '.form-drag-handle', function(e) {
+            console.log('🖱️ Form drag started');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const $draggedForm = $(this).closest('.form-section');
+            draggedElement = $draggedForm[0];
+            
+            // Create placeholder with arrow indicator
+            placeholder = $(`
+                <div class="form-placeholder">
+                    <div class="placeholder-content">
+                        <i class="fa fa-arrow-down animated-arrow"></i>
+                        <span>Buraya bırakın</span>
+                        <i class="fa fa-arrow-up animated-arrow"></i>
+                    </div>
+                </div>
+            `);
+            placeholder.height($draggedForm.outerHeight() || 100);
+            $draggedForm.after(placeholder);
+            
+            // Style the dragged element
+            $draggedForm.addClass('dragging-form');
+            $draggedForm.css({
+                'position': 'fixed',
+                'z-index': 1000,
+                'pointer-events': 'none',
+                'width': $draggedForm.width() + 'px'
+            });
+            
+            // Position at mouse
+            const updatePosition = function(e: MouseEvent) {
+                $draggedForm.css({
+                    'left': (e.pageX - 50) + 'px',
+                    'top': (e.pageY - 20) + 'px'
+                });
+            };
+            updatePosition(e as any);
+            
+            const handleMove = function(e: MouseEvent) {
+                if (!draggedElement || !placeholder) return;
+                
+                updatePosition(e);
+                
+                // Find drop target
+                let moved = false;
+                self.container.find('.form-section').not(draggedElement).each(function() {
+                    const $form = $(this);
+                    const rect = this.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    
+                    if (e.clientY < midpoint) {
+                        if (placeholder!.index() !== $form.index() - 1) {
+                            placeholder!.insertBefore($form);
+                            moved = true;
+                        }
+                        return false;
+                    }
+                });
+                
+                // If not moved yet, check if should go to end
+                if (!moved) {
+                    const $lastForm = self.container.find('.form-section').not(draggedElement).last();
+                    if ($lastForm.length && placeholder!.index() !== $lastForm.index() + 1) {
+                        placeholder!.insertAfter($lastForm);
+                    }
+                }
+            };
+            
+            const handleUp = function() {
+                console.log('🖱️ Form drag ended');
+                if (draggedElement && placeholder) {
+                    const $draggedForm = $(draggedElement);
+                    
+                    // Reset styles
+                    $draggedForm.css({
+                        'position': '',
+                        'z-index': '',
+                        'pointer-events': '',
+                        'width': '',
+                        'left': '',
+                        'top': ''
+                    });
+                    
+                    // Move to placeholder position
+                    placeholder.replaceWith($draggedForm);
+                    $draggedForm.removeClass('dragging-form');
+                    
+                    // Cleanup
+                    placeholder = null;
+                    draggedElement = null;
+                }
+                
+                $(document).off('mousemove', handleMove);
+                $(document).off('mouseup', handleUp);
+            };
+            
+            $(document).on('mousemove', handleMove);
+            $(document).on('mouseup', handleUp);
+        });
+        
+        // Field dragging
+        this.container.on('mousedown', '.field-item', function(e) {
+            console.log('🖱️ Field drag attempt - target:', e.target.tagName, e.target.className);
+            
+            if ($(e.target).is('input, select, textarea, label, button') || 
+                $(e.target).closest('.field-controls, .hide-field-btn').length) {
+                console.log('🖱️ Field drag blocked - interactive element clicked');
+                return;
+            }
+            
+            console.log('🖱️ Field drag started');
+            e.preventDefault();
+            draggedElement = this;
+            $(this).css('opacity', '0.5');
+            console.log('🖱️ Field drag element:', $(this).data('field-id'));
+            
+            const handleMove = function(e: MouseEvent) {
+                if (!draggedElement) return;
+                
+                // Find target container
+                self.container.find('.fields-area').each(function() {
+                    const rect = this.getBoundingClientRect();
+                    if (e.clientX >= rect.left && e.clientX <= rect.right &&
+                        e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                        
+                        console.log('🖱️ Field drag - in valid drop zone');
+                        
+                        const fields = $(this).find('.field-item').not(draggedElement);
+                        let inserted = false;
+                        
+                        fields.each(function() {
+                            const fieldRect = this.getBoundingClientRect();
+                            if (e.clientX < fieldRect.left + fieldRect.width / 2) {
+                                console.log('🖱️ Field drag - inserting before field');
+                                $(draggedElement!).insertBefore(this);
+                                inserted = true;
+                                return false;
+                            }
+                        });
+                        
+                        if (!inserted) {
+                            console.log('🖱️ Field drag - appending to end');
+                            $(this).append(draggedElement!);
+                        }
+                        
+                        return false;
+                    }
+                });
+            };
+            
+            const handleUp = function() {
+                console.log('🖱️ Field drag ended');
+                if (draggedElement) {
+                    $(draggedElement).css('opacity', '1');
+                    draggedElement = null;
+                }
+                $(document).off('mousemove', handleMove);
+                $(document).off('mouseup', handleUp);
+            };
+            
+            $(document).on('mousemove', handleMove);
+            $(document).on('mouseup', handleUp);
+        });
+    }
+
+    private updateFormSetting(formId: string, settings: Partial<ExtendedFieldSettings>): void {
+        const current = this.fieldSettings.get(formId) || {};
+        this.fieldSettings.set(formId, { ...current, ...settings });
+    }
+
+    private updateFieldSetting(fieldId: string, settings: Partial<ExtendedFieldSettings>): void {
+        const current = this.fieldSettings.get(fieldId) || {};
+        this.fieldSettings.set(fieldId, { ...current, ...settings });
+    }
+
+    private async saveSettings(): Promise<void> {
+        try {
+            const settings = {
+                layoutSettings: this.layoutSettings,
+                fieldSettings: Array.from(this.fieldSettings.entries()).map(([id, settings]) => ({
+                    fieldId: id,
+                    ...settings
+                }))
+            };
+
+            console.log('Saving settings:', settings);
+
+            await FormEditorV2Service.SaveUserSettings({
+                UserId: this.getUserId(),
+                Settings: JSON.stringify(settings)
+            } as SaveUserSettingsRequest);
+
+            notifySuccess("Ayarlar kaydedildi");
+        } catch (error) {
+            notifyError("Kaydetme hatası");
+            console.error('Save error:', error);
+        }
+    }
+
+    private async loadSettings(): Promise<void> {
+        try {
+            const response = await FormEditorV2Service.GetUserSettings({
+                UserId: this.getUserId()
+            } as GetUserSettingsRequest);
+
+            if (response.Settings) {
+                const settings = JSON.parse(response.Settings);
+                console.log('Loaded settings:', settings);
+                
+                this.layoutSettings = settings.layoutSettings || { widthMode: 'normal', formOrder: [], showWidthControls: true };
+                
+                // Clear and reload field settings
+                this.fieldSettings.clear();
+                if (settings.fieldSettings) {
+                    settings.fieldSettings.forEach((item: any) => {
+                        this.fieldSettings.set(item.fieldId, {
+                            width: item.width,
+                            collapsed: item.collapsed,
+                            hidden: item.hidden,
+                            required: item.required
+                        });
+                    });
+                }
+                
+                // Re-render with loaded settings
+                this.renderForms();
+                
+                // Apply layout mode
+                this.container.find('.width-mode-select').val(this.layoutSettings.widthMode);
+                this.container.find('.forms-container')
+                    .removeClass('width-mode-compact width-mode-normal width-mode-wide')
+                    .addClass(`width-mode-${this.layoutSettings.widthMode}`);
+            }
+        } catch (error) {
+            console.error('Load settings error:', error);
+        }
+    }
+
+    private resetSettings(): void {
+        this.fieldSettings.clear();
+        this.layoutSettings = { widthMode: 'normal', formOrder: [], showWidthControls: true };
+        this.renderForms();
+        notifySuccess("Ayarlar sıfırlandı");
+    }
+
+    private getUserId(): number {
+        return parseInt((window as any).Q?.Authorization?.userId || '0');
+    }
+}

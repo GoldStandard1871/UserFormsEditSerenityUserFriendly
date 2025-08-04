@@ -1,0 +1,95 @@
+.s-FormEditorV2Grid {
+    position: relative;
+}
+
+.form-row {
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+    padding: 15px;
+    background: #f9f9f9;
+    cursor: move;
+    transition: all 0.3s ease;
+}
+
+.form-row:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.form-row.dragging {
+    opacity: 0.5;
+}
+
+.form-row.hidden-form {
+    background: #e0e0e0;
+    opacity: 0.7;
+}
+
+.field-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.form-field {
+    border: 1px solid #ccc;
+    padding: 10px;
+    background: white;
+    position: relative;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.form-field.width-25 { flex: 0 0 calc(25% - 7.5px); }
+.form-field.width-50 { flex: 0 0 calc(50% - 5px); }
+.form-field.width-75 { flex: 0 0 calc(75% - 2.5px); }
+.form-field.width-100 { flex: 0 0 100%; }
+
+.form-field.hidden-field {
+    display: none;
+}
+
+.hide-form-toggle,
+.hide-field-toggle {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+    color: #666;
+}
+
+.hide-form-toggle:hover,
+.hide-field-toggle:hover {
+    color: #333;
+}
+
+.field-width-selector {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 11px;
+}
+
+.width-mode-selector {
+    margin-left: 10px;
+    padding: 4px 8px;
+}
+
+.width-mode-compact .form-row {
+    max-width: 800px;
+}
+
+.width-mode-normal .form-row {
+    max-width: 1000px;
+}
+
+.width-mode-wide .form-row {
+    max-width: 100%;
+}
+
+.save-settings-button,
+.reset-settings-button {
+    margin-left: 10px;
+}

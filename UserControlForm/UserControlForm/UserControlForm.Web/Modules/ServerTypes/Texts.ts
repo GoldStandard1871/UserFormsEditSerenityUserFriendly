@@ -86,6 +86,26 @@ namespace texts {
             }
         }
 
+        namespace FormEditor {
+
+            namespace FormEditorV2 {
+                export const DisplayOrder: string;
+                export const FormName: string;
+                export const Id: string;
+                export const IsActive: string;
+            }
+
+            namespace UserFormSettings {
+                export const Id: string;
+                export const InsertDate: string;
+                export const InsertUserId: string;
+                export const Settings: string;
+                export const UpdateDate: string;
+                export const UpdateUserId: string;
+                export const UserId: string;
+            }
+        }
+
         namespace Integration {
 
             namespace Movie {
@@ -191,6 +211,10 @@ const Texts: typeof texts = proxyTexts({}, '', {
             UserPermission: {},
             UserPreference: {},
             UserRole: {}
+        },
+        FormEditor: {
+            FormEditorV2: {},
+            UserFormSettings: {}
         },
         Integration: {
             Movie: {}

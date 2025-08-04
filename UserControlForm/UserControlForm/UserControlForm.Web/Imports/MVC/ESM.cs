@@ -2,6 +2,7 @@
 
 public static partial class ESM
 {
+    public const string FormEditorV2Page = "~/esm/Modules/FormEditor/FormEditorV2Page.js";
     public const string LanguagePage = "~/esm/Modules/Administration/Language/LanguagePage.js";
     public const string LoginPage = "~/esm/Modules/Membership/Account/Login/LoginPage.js";
     public const string MoviePage = "~/esm/Modules/Integration/Movie/MoviePage.js";
@@ -45,6 +46,11 @@ public static partial class ESM
         public static partial class Common
         {
             public const string ScriptInit = "~/esm/Modules/Common/ScriptInit.js";
+        }
+
+        public static partial class FormEditor
+        {
+            public const string FormEditorV2Page = "~/esm/Modules/FormEditor/FormEditorV2Page.js";
         }
 
         public static partial class Integration

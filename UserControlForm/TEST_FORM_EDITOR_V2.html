@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Form Editor V2 Test</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Inline test CSS */
+        .form-editor-v2 {
+            padding: 20px;
+            background: #f5f5f5;
+            min-height: 500px;
+        }
+        
+        .form-editor-toolbar {
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-section {
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .form-section.dragging-form {
+            opacity: 0.8;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            transform: rotate(2deg);
+            cursor: grabbing !important;
+        }
+        
+        .form-placeholder {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 3px dashed #1976d2;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            min-height: 80px;
+            position: relative;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; transform: scale(0.98); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.7; transform: scale(0.98); }
+        }
+        
+        .placeholder-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #1976d2;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .animated-arrow {
+            font-size: 20px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        .form-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        
+        .form-drag-handle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            margin-right: 12px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: 2px solid #d0d0d0;
+            color: #6c757d;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .form-drag-handle:hover {
+            background: #e0e0e0;
+            border-color: #007bff;
+            color: #007bff;
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0,123,255,0.2);
+        }
+        
+        .form-drag-handle:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+            background: #d0d0d0;
+        }
+        
+        .required-star {
+            color: #dc3545;
+            font-weight: bold;
+            margin-left: 3px;
+        }
+        
+        .required-field {
+            border-color: #ffc107 !important;
+            background: #fffdf0 !important;
+        }
+        
+        .form-body {
+            padding: 15px;
+        }
+        
+        .fields-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            min-height: 50px;
+        }
+        
+        .field-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            position: relative;
+            transition: all 0.2s;
+            cursor: move;
+            box-sizing: border-box;
+        }
+        
+        .field-item[data-width="25"] { width: calc(25% - 11.25px) !important; }
+        .field-item[data-width="50"] { width: calc(50% - 7.5px) !important; }
+        .field-item[data-width="75"] { width: calc(75% - 3.75px) !important; }
+        .field-item[data-width="100"] { width: 100% !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Form Editor V2 Test Page</h1>
+        <div id="testContainer" class="form-editor-v2"></div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            console.log('Test page loaded');
+            
+            // Create toolbar
+            $('#testContainer').html(`
+                <div class="form-editor-toolbar">
+                    <button class="btn btn-primary" onclick="testSave()">
+                        <i class="fa fa-save"></i> Kaydet
+                    </button>
+                    <button class="btn btn-default" onclick="testReset()">
+                        <i class="fa fa-refresh"></i> Reset
+                    </button>
+                </div>
+                <div class="forms-container">
+                    <div class="form-section" data-form-id="form1">
+                        <div class="form-header">
+                            <span class="form-drag-handle" title="Sürükleyerek sırayı değiştirin">
+                                <i class="fa fa-arrows-v"></i>
+                            </span>
+                            <span class="form-title" onclick="toggleForm(this)">
+                                <i class="fa fa-chevron-down toggle-icon"></i>
+                                Müşteri Bilgileri
+                            </span>
+                        </div>
+                        <div class="form-body">
+                            <div class="fields-area">
+                                <div class="field-item" data-width="50">
+                                    <label>Field 1</label>
+                                    <input type="text" class="form-control">
+                                    <select class="width-select" onchange="changeWidth(this)">
+                                        <option value="25">25%</option>
+                                        <option value="50" selected>50%</option>
+                                        <option value="75">75%</option>
+                                        <option value="100">100%</option>
+                                    </select>
+                                </div>
+                                <div class="field-item" data-width="50">
+                                    <label>Field 2</label>
+                                    <input type="text" class="form-control">
+                                    <select class="width-select" onchange="changeWidth(this)">
+                                        <option value="25">25%</option>
+                                        <option value="50" selected>50%</option>
+                                        <option value="75">75%</option>
+                                        <option value="100">100%</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section" data-form-id="form2">
+                        <div class="form-header">
+                            <span class="form-drag-handle" title="Sürükleyerek sırayı değiştirin">
+                                <i class="fa fa-arrows-v"></i>
+                            </span>
+                            <span class="form-title" onclick="toggleForm(this)">
+                                <i class="fa fa-chevron-down toggle-icon"></i>
+                                İletişim Bilgileri
+                            </span>
+                        </div>
+                        <div class="form-body">
+                            <div class="fields-area">
+                                <div class="field-item" data-width="100">
+                                    <label>Field 3</label>
+                                    <textarea class="form-control"></textarea>
+                                    <select class="width-select" onchange="changeWidth(this)">
+                                        <option value="25">25%</option>
+                                        <option value="50">50%</option>
+                                        <option value="75">75%</option>
+                                        <option value="100" selected>100%</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section" data-form-id="form3">
+                        <div class="form-header">
+                            <span class="form-drag-handle" title="Sürükleyerek sırayı değiştirin">
+                                <i class="fa fa-arrows-v"></i>
+                            </span>
+                            <span class="form-title" onclick="toggleForm(this)">
+                                <i class="fa fa-chevron-down toggle-icon"></i>
+                                Adres Bilgileri
+                            </span>
+                        </div>
+                        <div class="form-body">
+                            <div class="fields-area">
+                                <div class="field-item" data-width="50">
+                                    <label>İl</label>
+                                    <select class="form-control">
+                                        <option>Seçiniz</option>
+                                        <option>İstanbul</option>
+                                        <option>Ankara</option>
+                                    </select>
+                                </div>
+                                <div class="field-item" data-width="50">
+                                    <label>İlçe</label>
+                                    <select class="form-control">
+                                        <option>Seçiniz</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+            
+            // Test drag and drop
+            setupDragDrop();
+        });
+        
+        function toggleForm(header) {
+            console.log('Toggle form clicked');
+            const $header = $(header);
+            const $body = $header.next('.form-body');
+            const $icon = $header.find('.toggle-icon');
+            
+            if ($body.is(':visible')) {
+                $body.slideUp(200);
+                $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+                console.log('Form collapsed');
+            } else {
+                $body.slideDown(200);
+                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                console.log('Form expanded');
+            }
+        }
+        
+        function changeWidth(select) {
+            const width = $(select).val();
+            const $field = $(select).closest('.field-item');
+            $field.attr('data-width', width);
+            console.log('Width changed to:', width);
+        }
+        
+        function testSave() {
+            console.log('Save clicked');
+            alert('Save functionality would work here');
+        }
+        
+        function testReset() {
+            console.log('Reset clicked');
+            alert('Reset functionality would work here');
+        }
+        
+        function setupDragDrop() {
+            console.log('Setting up drag and drop');
+            
+            let draggedElement = null;
+            let placeholder = null;
+            
+            // Form dragging
+            $('.form-drag-handle').on('mousedown', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const $draggedForm = $(this).closest('.form-section');
+                draggedElement = $draggedForm[0];
+                
+                // Create placeholder with arrow indicator
+                placeholder = $(`
+                    <div class="form-placeholder">
+                        <div class="placeholder-content">
+                            <i class="fa fa-arrow-down animated-arrow"></i>
+                            <span>Buraya bırakın</span>
+                            <i class="fa fa-arrow-up animated-arrow"></i>
+                        </div>
+                    </div>
+                `);
+                placeholder.height($draggedForm.outerHeight());
+                $draggedForm.after(placeholder);
+                
+                // Style the dragged element
+                $draggedForm.addClass('dragging-form');
+                $draggedForm.css({
+                    'position': 'fixed',
+                    'z-index': 1000,
+                    'pointer-events': 'none',
+                    'width': $draggedForm.width() + 'px'
+                });
+                
+                // Position at mouse
+                const updatePosition = function(e) {
+                    $draggedForm.css({
+                        'left': (e.pageX - 50) + 'px',
+                        'top': (e.pageY - 20) + 'px'
+                    });
+                };
+                updatePosition(e);
+                
+                const handleMove = function(e) {
+                    if (!draggedElement || !placeholder) return;
+                    
+                    updatePosition(e);
+                    
+                    // Find drop target
+                    let moved = false;
+                    $('.form-section').not(draggedElement).each(function() {
+                        const rect = this.getBoundingClientRect();
+                        const midpoint = rect.top + rect.height / 2;
+                        
+                        if (e.clientY < midpoint) {
+                            if (placeholder.index() !== $(this).index() - 1) {
+                                placeholder.insertBefore($(this));
+                                moved = true;
+                            }
+                            return false;
+                        }
+                    });
+                    
+                    // If not moved yet, check if should go to end
+                    if (!moved) {
+                        const $lastForm = $('.form-section').not(draggedElement).last();
+                        if ($lastForm.length && placeholder.index() !== $lastForm.index() + 1) {
+                            placeholder.insertAfter($lastForm);
+                        }
+                    }
+                };
+                
+                const handleUp = function() {
+                    if (draggedElement && placeholder) {
+                        const $draggedForm = $(draggedElement);
+                        
+                        // Reset styles
+                        $draggedForm.css({
+                            'position': '',
+                            'z-index': '',
+                            'pointer-events': '',
+                            'width': '',
+                            'left': '',
+                            'top': ''
+                        });
+                        
+                        // Move to placeholder position
+                        placeholder.replaceWith($draggedForm);
+                        $draggedForm.removeClass('dragging-form');
+                        
+                        // Cleanup
+                        placeholder = null;
+                        draggedElement = null;
+                    }
+                    
+                    $(document).off('mousemove', handleMove);
+                    $(document).off('mouseup', handleUp);
+                };
+                
+                $(document).on('mousemove', handleMove);
+                $(document).on('mouseup', handleUp);
+            });
+        }
+    </script>
+</body>
+</html>
