@@ -50,6 +50,20 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
         );
 
         this.toolbar.element.append(
+            <div className="hidden-fields-container">
+                <button className="hidden-fields-toggle" onClick={(e) => this.toggleHiddenFieldsDropdown(e)}>
+                    <i className="fa fa-eye-slash"></i> Gizlenen Alanlar <span className="hidden-count">(0)</span>
+                </button>
+                <div className="hidden-fields-dropdown" style={{ display: 'none' }}>
+                    <div className="dropdown-header">Gizlenen Alanlar</div>
+                    <div className="hidden-fields-list">
+                        <div className="no-hidden-fields">Gizlenmiş alan yok</div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        this.toolbar.element.append(
             <select className="width-mode-selector" onChange={(e) => this.changeWidthMode(e.target.value)}>
                 <option value="compact">Kompakt</option>
                 <option value="normal">Normal</option>
@@ -62,7 +76,82 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
         this.loadUserSettings();
         this.setupDragAndDrop();
         this.setupFieldControls();
+        this.setupHiddenFieldsEvents();
         this.applyLayoutSettings();
+    }
+
+    protected createSlickGrid(): Slick.Grid {
+        const grid = super.createSlickGrid();
+        
+        // Grid render olduktan sonra kontrolleri ekle
+        grid.onViewportChanged.subscribe(() => {
+            this.addFieldControls();
+        });
+        
+        grid.onColumnsResized.subscribe(() => {
+            this.addFieldControls();
+        });
+        
+        return grid;
+    }
+
+    protected afterRender(): void {
+        // Grid tamamen yüklendikten sonra
+        setTimeout(() => {
+            this.addFieldControls();
+        }, 500);
+    }
+
+    private addFieldControls(): void {
+        // Önce toolbar'daki hidden fields sayısını kontrol et
+        if (this.toolbar.element.find('.hidden-fields-container').length === 0) {
+            return; // Henüz toolbar hazır değil
+        }
+
+        // Grid container'ı içindeki tüm row'ları bul
+        const gridContainer = this.slickGrid.getContainerNode();
+        const rows = $(gridContainer).find('.slick-row');
+        
+        rows.each((index, rowElement) => {
+            const $row = $(rowElement);
+            const rowIndex = parseInt($row.attr('row') || index.toString());
+            const item = this.view.getItem(rowIndex);
+            
+            if (!item) return;
+            
+            // Row'u form-row olarak işaretle
+            $row.addClass('form-row');
+            $row.attr('data-form-id', item.Id || `form-${rowIndex}`);
+            
+            // Her cell'e field kontrolleri ekle
+            $row.find('.slick-cell').each((cellIndex, cellElement) => {
+                const $cell = $(cellElement);
+                const column = this.slickGrid.getColumns()[cellIndex];
+                
+                if (!column || column.field === 'Id' || $cell.find('.hide-field-toggle').length > 0) {
+                    return;
+                }
+                
+                const fieldId = `field_${rowIndex}_${cellIndex}`;
+                const fieldName = column.name || column.field || `Field ${cellIndex}`;
+                
+                $cell.css('position', 'relative');
+                $cell.attr('data-field-id', fieldId);
+                $cell.attr('data-field-name', fieldName);
+                
+                // Gizleme butonu ekle
+                const hideButton = $(`
+                    <button class="hide-field-toggle" title="Alanı Gizle">
+                        <i class="fa fa-eye-slash"></i>
+                    </button>
+                `);
+                
+                $cell.append(hideButton);
+            });
+        });
+        
+        // Field listesini güncelle
+        this.updateHiddenFieldsList();
     }
 
     private setupDragAndDrop(): void {
@@ -132,6 +221,9 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
             const settings = this.fieldSettings.get(fieldId) || {} as FormFieldSettings;
             settings.fieldHidden = field.hasClass('hidden-field');
             this.fieldSettings.set(fieldId, settings);
+            
+            this.updateHiddenFieldsList();
+            this.reorganizeFields();
         });
 
         this.element.on('change', '.field-width-selector', (e) => {
@@ -283,9 +375,86 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
                 field.addClass('hidden-field');
             }
         });
+        
+        this.updateHiddenFieldsList();
+        this.reorganizeFields();
     }
 
     private getCurrentUserId(): number {
         return parseInt(Q.Authorization.userId || '0');
     }
+
+    private toggleHiddenFieldsDropdown(e: React.MouseEvent): void {
+        e.stopPropagation();
+        const dropdown = this.toolbar.element.find('.hidden-fields-dropdown');
+        dropdown.toggle();
+        
+        if (dropdown.is(':visible')) {
+            this.updateHiddenFieldsList();
+        }
+    }
+
+    private updateHiddenFieldsList(): void {
+        const hiddenFieldsList = this.toolbar.element.find('.hidden-fields-list');
+        hiddenFieldsList.empty();
+        
+        let hiddenCount = 0;
+        const hiddenFields: { fieldId: string, fieldName: string, formName: string }[] = [];
+        
+        this.element.find('.form-row').each((i, formRow) => {
+            const formName = $(formRow).find('.form-title').text() || `Form ${i + 1}`;
+            
+            $(formRow).find('.form-field.hidden-field').each((j, field) => {
+                const fieldId = $(field).data('field-id');
+                const fieldName = $(field).find('.field-label').text() || $(field).data('field-name') || `Alan ${j + 1}`;
+                
+                hiddenFields.push({ fieldId, fieldName, formName });
+                hiddenCount++;
+            });
+        });
+        
+        this.toolbar.element.find('.hidden-count').text(`(${hiddenCount})`);
+        
+        if (hiddenFields.length === 0) {
+            hiddenFieldsList.append('<div class="no-hidden-fields">Gizlenmiş alan yok</div>');
+        } else {
+            hiddenFields.forEach(({ fieldId, fieldName, formName }) => {
+                hiddenFieldsList.append(
+                    `<div class="hidden-field-item">
+                        <span class="field-info">
+                            <span class="field-name">${fieldName}</span>
+                            <span class="form-name">${formName}</span>
+                        </span>
+                        <button class="show-field-btn" data-field-id="${fieldId}">
+                            <i class="fa fa-eye"></i> Göster
+                        </button>
+                    </div>`
+                );
+            });
+        }
+    }
+
+    private setupHiddenFieldsEvents(): void {
+        $(document).on('click', (e) => {
+            if (!$(e.target).closest('.hidden-fields-container').length) {
+                this.toolbar.element.find('.hidden-fields-dropdown').hide();
+            }
+        });
+        
+        this.toolbar.element.on('click', '.show-field-btn', (e) => {
+            e.stopPropagation();
+            const fieldId = $(e.currentTarget).data('field-id');
+            const field = this.element.find(`[data-field-id="${fieldId}"]`);
+            
+            field.removeClass('hidden-field');
+            
+            const settings = this.fieldSettings.get(fieldId) || {} as FormFieldSettings;
+            settings.fieldHidden = false;
+            this.fieldSettings.set(fieldId, settings);
+            
+            this.updateHiddenFieldsList();
+            this.reorganizeFields();
+        });
+    }
+
 }

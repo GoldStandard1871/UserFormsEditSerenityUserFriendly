@@ -57,9 +57,24 @@ export class FormEditorV2Widget extends Widget<any> {
                     <i class="fa fa-refresh"></i> Varsayılana Dön
                 </button>
                 <span class="toolbar-separator"></span>
-                <button type="button" class="btn btn-default toggle-width-controls-btn">
-                    <i class="fa fa-sliders"></i> Genişlik Ayarlarını <span class="toggle-text">Gizle</span>
-                </button>
+                
+                <div class="toolbar-controls-group" style="display: inline-flex; align-items: center; gap: 10px;">
+                    <button type="button" class="btn btn-warning toggle-width-controls-btn">
+                        <i class="fa fa-cog"></i> Genişlik ve Gizlilik Ayarları <span class="toggle-text badge badge-secondary" style="margin-left: 5px;">Açık</span>
+                    </button>
+                    
+                    <div class="hidden-fields-container" style="display: inline-block; position: relative;">
+                        <button type="button" class="btn btn-info hidden-fields-toggle">
+                            <i class="fa fa-eye-slash"></i> Gizlenen Alanlar <span class="hidden-count">(0)</span>
+                        </button>
+                        <div class="hidden-fields-dropdown" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 5px;">
+                            <div class="dropdown-header">Gizlenen Alanlar</div>
+                            <div class="hidden-fields-list">
+                                <div class="no-hidden-fields">Gizlenmiş alan yok</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `);
         
@@ -173,9 +188,6 @@ export class FormEditorV2Widget extends Widget<any> {
                 const fieldHtml = $(`
                     <div class="field-item ${isRequired ? 'required-field' : ''}" data-field-id="${field.id}" data-width="${savedWidth}" style="${widthStyle} ${flexStyle}">
                         <div class="field-content">
-                            <button type="button" class="btn btn-xs btn-danger hide-field-btn" title="Alanı Gizle" style="position: absolute; top: 2px; right: 2px; z-index: 10;">
-                                <i class="fa fa-eye-slash"></i>
-                            </button>
                             <label>
                                 ${field.label}
                                 ${isRequired ? '<span class="required-star">*</span>' : ''}
@@ -183,6 +195,7 @@ export class FormEditorV2Widget extends Widget<any> {
                             ${this.createInput(field.type)}
                             <div class="field-controls" ${this.layoutSettings.showWidthControls === false ? 'style="display: none;"' : ''}>
                                 <div class="field-controls-row">
+                                    <i class="fa fa-eye-slash hide-field-btn" title="Alanı Gizle"></i>
                                     <select class="width-select" data-field-id="${field.id}">
                                         <option value="25" ${savedWidth === 25 ? 'selected' : ''}>25%</option>
                                         <option value="50" ${savedWidth === 50 ? 'selected' : ''}>50%</option>
@@ -211,7 +224,7 @@ export class FormEditorV2Widget extends Widget<any> {
             const hiddenCount = form.fields.filter(f => this.fieldSettings.get(f.id)?.hidden).length;
             if (hiddenCount > 0) {
                 fieldsArea.after(`
-                    <div class="hidden-fields-info" style="padding: 10px; background: #f8f9fa; border-top: 1px solid #dee2e6;">
+                    <div class="hidden-fields-info" style="padding: 10px; background: #f8f9fa; border-top: 1px solid #dee2e6; ${this.layoutSettings.showWidthControls === false ? 'display: none;' : ''}">
                         <i class="fa fa-info-circle"></i> ${hiddenCount} alan gizli. 
                         <button type="button" class="btn btn-xs btn-info show-hidden-btn" data-form-id="${form.id}">
                             Gizli Alanları Göster
@@ -298,14 +311,21 @@ export class FormEditorV2Widget extends Widget<any> {
             const $btn = $(this);
             const $toggleText = $btn.find('.toggle-text');
             const widthControls = self.container.find('.field-controls');
+            const hiddenFieldsInfo = self.container.find('.hidden-fields-info');
             
             if (widthControls.is(':visible')) {
+                // Gizle
                 widthControls.slideUp(200);
-                $toggleText.text('Göster');
+                hiddenFieldsInfo.slideUp(200);
+                $toggleText.text('Kapalı').removeClass('badge-secondary').addClass('badge-danger');
+                $btn.removeClass('btn-warning').addClass('btn-default');
                 self.layoutSettings.showWidthControls = false;
             } else {
+                // Göster
                 widthControls.slideDown(200);
-                $toggleText.text('Gizle');
+                hiddenFieldsInfo.slideDown(200);
+                $toggleText.text('Açık').removeClass('badge-danger').addClass('badge-secondary');
+                $btn.removeClass('btn-default').addClass('btn-warning');
                 self.layoutSettings.showWidthControls = true;
             }
         });
@@ -425,8 +445,90 @@ export class FormEditorV2Widget extends Widget<any> {
             console.log(`Field ${fieldId} required status changed to: ${isRequired}`);
         });
         
+        // Hidden fields dropdown toggle
+        this.container.on('click', '.hidden-fields-toggle', function(e) {
+            e.stopPropagation();
+            const $dropdown = $(this).siblings('.hidden-fields-dropdown');
+            $dropdown.toggle();
+            
+            if ($dropdown.is(':visible')) {
+                self.updateHiddenFieldsList();
+            }
+        });
+        
+        // Show individual hidden field
+        this.container.on('click', '.show-hidden-field-btn', function(e) {
+            e.stopPropagation();
+            const fieldId = $(this).data('field-id');
+            self.updateFieldSetting(fieldId, { hidden: false });
+            self.renderForms();
+            self.updateHiddenFieldsList();
+        });
+        
+        // Close dropdown when clicking outside
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.hidden-fields-container').length) {
+                $('.hidden-fields-dropdown').hide();
+            }
+        });
+        
         // Simple drag and drop
         this.setupDragAndDrop();
+    }
+
+    private updateHiddenFieldsList(): void {
+        const hiddenFieldsList = this.container.find('.hidden-fields-list');
+        const hiddenCountSpan = this.container.find('.hidden-count');
+        hiddenFieldsList.empty();
+        
+        let hiddenFields: { fieldId: string, fieldName: string, formName: string }[] = [];
+        
+        // Collect all hidden fields
+        const forms = [
+            { id: 'form1', title: 'Müşteri Bilgileri', fields: [
+                { id: 'f1', label: 'Ad' }, { id: 'f2', label: 'Soyad' }, 
+                { id: 'f3', label: 'TC Kimlik' }, { id: 'f4', label: 'Doğum Tarihi' }
+            ]},
+            { id: 'form2', title: 'İletişim Bilgileri', fields: [
+                { id: 'f5', label: 'Telefon' }, { id: 'f6', label: 'E-posta' }, { id: 'f7', label: 'Adres' }
+            ]},
+            { id: 'form3', title: 'Adres Bilgileri', fields: [
+                { id: 'f8', label: 'İl' }, { id: 'f9', label: 'İlçe' }, { id: 'f10', label: 'Mahalle' }
+            ]}
+        ];
+        
+        forms.forEach(form => {
+            form.fields.forEach(field => {
+                const fieldSettings = this.fieldSettings.get(field.id);
+                if (fieldSettings?.hidden) {
+                    hiddenFields.push({
+                        fieldId: field.id,
+                        fieldName: field.label,
+                        formName: form.title
+                    });
+                }
+            });
+        });
+        
+        hiddenCountSpan.text(`(${hiddenFields.length})`);
+        
+        if (hiddenFields.length === 0) {
+            hiddenFieldsList.html('<div class="no-hidden-fields">Gizlenmiş alan yok</div>');
+        } else {
+            hiddenFields.forEach(({ fieldId, fieldName, formName }) => {
+                hiddenFieldsList.append(`
+                    <div class="hidden-field-item">
+                        <div class="field-info">
+                            <span class="field-name">${fieldName}</span>
+                            <span class="form-name">${formName}</span>
+                        </div>
+                        <button type="button" class="btn btn-xs btn-success show-hidden-field-btn" data-field-id="${fieldId}">
+                            <i class="fa fa-eye"></i> Göster
+                        </button>
+                    </div>
+                `);
+            });
+        }
     }
 
     private setupDragAndDrop(): void {
@@ -666,6 +768,15 @@ export class FormEditorV2Widget extends Widget<any> {
                 
                 // Apply layout mode
                 this.container.find('.width-mode-select').val(this.layoutSettings.widthMode);
+                
+                // Apply width controls visibility
+                if (this.layoutSettings.showWidthControls === false) {
+                    const $btn = this.container.find('.toggle-width-controls-btn');
+                    const $toggleText = $btn.find('.toggle-text');
+                    $toggleText.text('Kapalı').removeClass('badge-secondary').addClass('badge-danger');
+                    $btn.removeClass('btn-warning').addClass('btn-default');
+                }
+                
                 this.container.find('.forms-container')
                     .removeClass('width-mode-compact width-mode-normal width-mode-wide')
                     .addClass(`width-mode-${this.layoutSettings.widthMode}`);

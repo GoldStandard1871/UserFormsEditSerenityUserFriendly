@@ -29,8 +29,12 @@ Form editörünün geliştirilmiş versiyonu. Kullanıcıların form düzenlemel
 6. **Varsayılana Dön**
    - "Varsayılana Dön" butonu ile tüm ayarlar sıfırlanabilir
 
-7. **Alan Gizleme/Gösterme**
+7. **Gelişmiş Alan Gizleme/Gösterme**
    - Form içindeki alanlar tek tek gizlenebilir/gösterilebilir
+   - Üst menüde "Gizlenen Alanlar" dropdown'u ile kolay yönetim
+   - Gizlenen alan sayısı otomatik gösterilir
+   - Tek tıkla gizlenen alanları geri getirme
+   - Mouse ile üzerine gelince görünen gizleme butonları
 
 ## Kurulum
 

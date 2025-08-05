@@ -18,8 +18,14 @@
     gap: 10px;
 }
 
+.form-editor-toolbar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+}
+
 .form-editor-toolbar button {
     margin: 0;
+    vertical-align: middle !important;
 }
 
 .toolbar-separator {
@@ -27,6 +33,108 @@
     height: 30px;
     background: #ddd;
     margin: 0 10px;
+}
+
+/* Toolbar controls group */
+.toolbar-controls-group {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-wrap: nowrap !important;
+}
+
+/* Hidden Fields Dropdown */
+.hidden-fields-container {
+    position: relative;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+/* Toggle width controls button styling */
+.toggle-width-controls-btn {
+    margin-left: 0 !important;
+}
+
+.toggle-width-controls-btn .badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    vertical-align: middle;
+}
+
+.hidden-fields-toggle {
+    position: relative;
+}
+
+.hidden-count {
+    font-weight: bold;
+    color: #dc3545;
+}
+
+.hidden-fields-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 5px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-width: 300px;
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.dropdown-header {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: bold;
+    color: #495057;
+}
+
+.hidden-fields-list {
+    padding: 10px;
+}
+
+.no-hidden-fields {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.hidden-field-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s ease;
+}
+
+.hidden-field-item:last-child {
+    border-bottom: none;
+}
+
+.hidden-field-item:hover {
+    background: #f8f9fa;
+}
+
+.field-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.field-name {
+    font-weight: 500;
+    color: #212529;
+}
+
+.form-name {
+    font-size: 12px;
+    color: #6c757d;
 }
 
 /* Forms Container */
@@ -277,23 +385,39 @@
     margin-bottom: 5px;
 }
 
-/* Hide field button - VISIBLE */
-.form-editor-v2 .hide-field-btn {
-    position: absolute !important;
-    top: 2px !important;
-    right: 2px !important;
-    padding: 2px 6px !important;
-    font-size: 11px !important;
-    opacity: 0 !important;
-    transition: opacity 0.2s !important;
-    z-index: 10 !important;
-    background: #dc3545 !important;
-    color: white !important;
-    border: none !important;
+/* Hide field icon - PURE ICON */
+.field-controls-row .hide-field-btn {
+    font-size: 12px !important;
+    color: #000000 !important;
+    cursor: pointer !important;
+    margin-right: 8px !important;
+    opacity: 0.5 !important;
+    transition: opacity 0.2s ease, transform 0.2s ease !important;
+    display: inline-block !important;
 }
 
-.form-editor-v2 .field-item:hover .hide-field-btn {
+.field-controls-row .hide-field-btn:hover {
     opacity: 1 !important;
+}
+
+.field-controls-row .hide-field-btn:active {
+    transform: scale(0.9) !important;
+}
+
+/* Field controls row adjustments */
+.field-controls-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+
+/* Field item position fix */
+.field-item {
+    position: relative !important;
+}
+
+.field-content {
+    position: relative !important;
 }
 
 /* Hidden fields info */
