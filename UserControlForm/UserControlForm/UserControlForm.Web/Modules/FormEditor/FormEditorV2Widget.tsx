@@ -153,9 +153,8 @@ export class FormEditorV2Widget extends Widget<any> {
                 const fieldSettings = this.fieldSettings.get(field.id);
                 const savedWidth = fieldSettings?.width || field.width;
                 const isHidden = fieldSettings?.hidden || false;
-                const isRequired = fieldSettings?.required || false;
                 
-                console.log(`🎨 Field ${field.id}: width=${savedWidth}%, hidden=${isHidden}, required=${isRequired}, settings=`, fieldSettings);
+                console.log(`🎨 Field ${field.id}: width=${savedWidth}%, hidden=${isHidden}, settings=`, fieldSettings);
                 
                 if (isHidden) {
                     console.log(`🎨 Field ${field.id} skipped - hidden`);
@@ -186,11 +185,10 @@ export class FormEditorV2Widget extends Widget<any> {
                 }
                 
                 const fieldHtml = $(`
-                    <div class="field-item ${isRequired ? 'required-field' : ''}" data-field-id="${field.id}" data-width="${savedWidth}" style="${widthStyle} ${flexStyle}">
+                    <div class="field-item" data-field-id="${field.id}" data-width="${savedWidth}" style="${widthStyle} ${flexStyle}">
                         <div class="field-content">
                             <label>
                                 ${field.label}
-                                ${isRequired ? '<span class="required-star">*</span>' : ''}
                             </label>
                             ${this.createInput(field.type)}
                             <div class="field-controls" ${this.layoutSettings.showWidthControls === false ? 'style="display: none;"' : ''}>
@@ -202,10 +200,6 @@ export class FormEditorV2Widget extends Widget<any> {
                                         <option value="75" ${savedWidth === 75 ? 'selected' : ''}>75%</option>
                                         <option value="100" ${savedWidth === 100 ? 'selected' : ''}>100%</option>
                                     </select>
-                                    <label class="required-checkbox-label">
-                                        <input type="checkbox" class="required-checkbox" data-field-id="${field.id}" ${isRequired ? 'checked' : ''} />
-                                        Zorunlu
-                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -420,29 +414,6 @@ export class FormEditorV2Widget extends Widget<any> {
             });
             
             self.renderForms();
-        });
-        
-        // Required field checkbox
-        this.container.on('change', '.required-checkbox', function() {
-            const $checkbox = $(this);
-            const fieldId = $checkbox.data('field-id');
-            const isRequired = $checkbox.is(':checked');
-            const $field = $checkbox.closest('.field-item');
-            const $label = $field.find('label').first();
-            
-            self.updateFieldSetting(fieldId, { required: isRequired });
-            
-            if (isRequired) {
-                $field.addClass('required-field');
-                if (!$label.find('.required-star').length) {
-                    $label.append(' <span class="required-star">*</span>');
-                }
-            } else {
-                $field.removeClass('required-field');
-                $label.find('.required-star').remove();
-            }
-            
-            console.log(`Field ${fieldId} required status changed to: ${isRequired}`);
         });
         
         // Hidden fields dropdown toggle

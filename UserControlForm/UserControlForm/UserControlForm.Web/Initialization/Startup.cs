@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Serenity.Extensions.DependencyInjection;
 using Serenity.Localization;
 using Serenity.Navigation;
+using UserControlForm.Common.UserActivity;
 
 namespace UserControlForm;
 public partial class Startup
@@ -107,6 +108,16 @@ public partial class Startup
         services.AddScriptBundling();
         services.AddUploadStorage();
         services.AddReporting();
+        
+        // SignalR for real-time user activity tracking
+        services.AddSignalR(options =>
+        {
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+        });
+        
+        // Add memory cache for user activities
+        services.AddMemoryCache();
     }
 
     public static void InitializeLocalTexts(IServiceProvider services)
@@ -165,6 +176,7 @@ public partial class Startup
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
+            endpoints.MapHub<UserActivityHub>("/userActivityHub");
         });
 
         app.ApplicationServices.GetRequiredService<IDataMigrations>().Initialize();

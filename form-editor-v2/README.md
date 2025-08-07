@@ -61,3 +61,75 @@ Form editörünün geliştirilmiş versiyonu. Kullanıcıların form düzenlemel
 - Serenity Framework kullanır
 - Kullanıcı ayarları JSON formatında saklanır
 - Responsive tasarıma sahiptir
+
+## Veritabanı Yapısı
+
+### Kullanılan Tablo: UserFormSettings
+
+**Veritabanı:** `UserControlForm_Default_v1`  
+**Tablo:** `dbo.UserFormSettings`
+
+#### Kolon Yapısı:
+- `Id` (int, Identity) - Primary Key
+- `UserId` (int) - Kullanıcı ID'si
+- `Settings` (nvarchar(max)) - JSON formatında tüm ayarlar
+- `InsertDate` (datetime) - Kayıt tarihi
+- `InsertUserId` (int) - Kaydı oluşturan kullanıcı
+- `UpdateDate` (datetime, nullable) - Güncelleme tarihi
+- `UpdateUserId` (int, nullable) - Güncelleyen kullanıcı
+
+#### Örnek Veri:
+```json
+{
+  "layoutSettings": {
+    "widthMode": "wide",
+    "showWidthControls": true,
+    "formOrder": ["form-0", "form-2", "form-1"],
+    "formStructure": [
+      {
+        "formId": "form-0",
+        "formName": "Müşteri Bilgileri",
+        "order": 0,
+        "hidden": false,
+        "fields": [
+          {
+            "fieldId": "field_0_1",
+            "fieldName": "Müşteri Adı",
+            "width": 50,
+            "hidden": false
+          }
+        ]
+      }
+    ]
+  },
+  "fieldSettings": [
+    {
+      "fieldId": "field_0_1",
+      "width": 50,
+      "hidden": false,
+      "required": true
+    }
+  ]
+}
+```
+
+## Önemli Notlar
+
+### 1. Kullanıcı ID Tespiti
+- `User.GetIdentifier()` ile otomatik kullanıcı ID'si alınır
+- Eğer bulunamazsa test için ID=1 kullanılır
+
+### 2. Endpoint Yapısı
+- **SaveUserSettings**: Ayarları kaydeder/günceller
+- **GetUserSettings**: Kullanıcının ayarlarını getirir
+
+### 3. Debug ve Test
+- Visual Studio Output penceresinde debug logları görülebilir
+- Browser konsolunda (F12) client-side loglar görülebilir
+- SQL scriptleri: `USERFORMSETTINGS_KONTROL.sql`
+
+### 4. Dikkat Edilmesi Gerekenler
+- UserPreferences tablosu KULLANILMIYOR (kolon isimleri farklı)
+- UserFormSettings tablosu kullanılıyor
+- Her kullanıcı için tek kayıt (update edilir)
+- JSON string olarak tüm ayarlar tek kolonda

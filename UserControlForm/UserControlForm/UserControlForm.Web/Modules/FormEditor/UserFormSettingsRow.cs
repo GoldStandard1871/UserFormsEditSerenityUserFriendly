@@ -8,8 +8,8 @@ namespace UserControlForm.FormEditor
 {
     [ConnectionKey("Default"), Module("FormEditor"), TableName("UserFormSettings")]
     [DisplayName("User Form Settings"), InstanceName("User Form Settings")]
-    [ReadPermission("Administration:General")]
-    [ModifyPermission("Administration:General")]
+    [ReadPermission("FormEditor:View")]
+    [ModifyPermission("FormEditor:Edit")]
     public sealed class UserFormSettingsRow : Row<UserFormSettingsRow.RowFields>, IIdRow
     {
         [DisplayName("Id"), Identity, IdProperty]

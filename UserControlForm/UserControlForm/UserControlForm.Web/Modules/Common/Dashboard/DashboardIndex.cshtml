@@ -8,6 +8,7 @@ ViewData["PageId"] = "Dashboard";
 @section Head {
 @Html.StyleBundle("Pages/Dashboard")
 @Html.ScriptBundle("Pages/Dashboard")
+<link href="~/Content/site/useractivity.css" rel="stylesheet" />
 }
 
 @section ContentHeader {
@@ -265,10 +266,127 @@ ViewData["PageId"] = "Dashboard";
     </section>
 </div>
 
+@if (User.IsInRole("Administrators") || User.Identity.Name == "admin")
+{
+<div class="row">
+    <section class="col-lg-6">
+        <div class="card s-dashboard-card">
+            <div class="card-header d-flex">
+                <h3 class="card-title">
+                    <i class="fa fa-users"></i> Kullanıcı Aktiviteleri
+                </h3>
+                <div class="ms-auto">
+                    <span class="badge bg-success" id="online-count">0 Online</span>
+                    <button class="btn btn-sm btn-primary ms-2" onclick="loadUserActivities()">
+                        <i class="fa fa-refresh"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="user-activity-widget"></div>
+            </div>
+        </div>
+    </section>
+</div>
+}
+
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
 <script>
+    // SignalR connection
+    let connection = null;
+    
+    // Initialize SignalR
+    function initializeSignalR() {
+        connection = new signalR.HubConnectionBuilder()
+            .withUrl("/userActivityHub")
+            .withAutomaticReconnect()
+            .build();
+            
+        connection.on("UserStatusChanged", function(userId, isOnline) {
+            console.log("User status changed:", userId, isOnline);
+            loadUserActivities();
+        });
+        
+        connection.start()
+            .then(function() {
+                console.log("SignalR connected");
+                loadUserActivities();
+                // Send heartbeat every 30 seconds
+                setInterval(function() {
+                    if (connection.state === signalR.HubConnectionState.Connected) {
+                        connection.invoke("SendHeartbeat");
+                    }
+                }, 30000);
+            })
+            .catch(function(err) {
+                console.error("SignalR connection error:", err);
+            });
+    }
+    
+    // Load user activities
+    function loadUserActivities() {
+        $.ajax({
+            url: '/Services/Common/UserActivity/List',
+            type: 'GET',
+            success: function(response) {
+                var activities = response.Entities || [];
+                var onlineCount = 0;
+                var html = '<div class="user-activity-list">';
+                
+                if (activities.length === 0) {
+                    html += '<div class="text-center text-muted p-4">Henüz aktivite kaydı yok</div>';
+                } else {
+                    activities.forEach(function(activity) {
+                        if (activity.IsOnline) onlineCount++;
+                        
+                        var statusClass = activity.IsOnline ? 'online' : 'offline';
+                        var statusIcon = activity.IsOnline 
+                            ? '<i class="fa fa-circle text-success"></i>' 
+                            : '<i class="fa fa-circle text-muted"></i>';
+                        
+                        var activityDate = new Date(activity.LastActivityTime);
+                        var now = new Date();
+                        var diffMs = now - activityDate;
+                        var diffMins = Math.floor(diffMs / 60000);
+                        var timeStr = '';
+                        
+                        if (diffMins < 1) timeStr = 'Şimdi';
+                        else if (diffMins < 60) timeStr = diffMins + ' dakika önce';
+                        else if (diffMins < 1440) timeStr = Math.floor(diffMins / 60) + ' saat önce';
+                        else timeStr = activityDate.toLocaleDateString('tr-TR');
+                        
+                        html += '<div class="activity-item ' + statusClass + '">';
+                        html += '  <div class="activity-status">' + statusIcon + '</div>';
+                        html += '  <div class="activity-info">';
+                        html += '    <div class="user-name">' + (activity.DisplayName || activity.Username) + '</div>';
+                        html += '    <div class="user-details">';
+                        html += '      <span class="detail-item"><i class="fa fa-clock-o"></i> ' + timeStr + ' (' + activityDate.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'}) + ')</span>';
+                        html += '      <span class="detail-item"><i class="fa fa-globe"></i> ' + (activity.IpAddress || 'Bilinmiyor') + '</span>';
+                        html += '    </div>';
+                        html += '  </div>';
+                        html += '  <div class="activity-type">';
+                        if (activity.IsOnline) {
+                            html += '    <span class="badge bg-success">Online</span>';
+                        } else {
+                            html += '    <span class="badge bg-secondary">Offline</span>';
+                        }
+                        html += '  </div>';
+                        html += '</div>';
+                    });
+                }
+                
+                html += '</div>';
+                $('#user-activity-widget').html(html);
+                $('#online-count').text(onlineCount + ' Online');
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading activities:', error);
+                $('#user-activity-widget').html('<div class="alert alert-danger">Veri yüklenirken hata oluştu</div>');
+            }
+        });
+    }
 
     $(function () {
-
         
         $('.daterange').daterangepicker({
             ranges: {
@@ -480,5 +598,11 @@ ViewData["PageId"] = "Dashboard";
             salesByQuarterChart.update();
             salesByTypeChart.update();
         });
+        
+        // Initialize SignalR for admin users
+        @if (User.IsInRole("Administrators") || User.Identity.Name == "admin")
+        {
+            <text>initializeSignalR();</text>
+        }
     });
 </script>

@@ -1,0 +1,278 @@
+/* User Activity Widget Styles */
+.user-activity-widget {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    margin-bottom: 20px;
+}
+
+/* Vertical Layout */
+.user-activity-list {
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+    gap: 15px;
+}
+
+.activity-item:hover {
+    background-color: #f8f9fa;
+}
+
+.activity-item.online {
+    background-color: #f0f8ff;
+}
+
+.activity-status {
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+.activity-status .fa-circle {
+    font-size: 12px;
+}
+
+.activity-info {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.user-details {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 15px;
+    font-size: 13px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.detail-item {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.detail-item i {
+    color: #999;
+    font-size: 12px;
+}
+
+.activity-type {
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.user-activity-widget .widget-header {
+    padding: 15px;
+    border-bottom: 1px solid #f4f4f4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-activity-widget .widget-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+}
+
+.user-activity-widget .widget-header h3 i {
+    margin-right: 8px;
+    color: #3c8dbc;
+}
+
+#online-count {
+    font-size: 13px;
+    padding: 4px 10px;
+}
+
+.user-activity-widget .box-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-activity-widget .box-tools .label {
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: normal;
+    border-radius: 3px;
+}
+
+.user-activity-widget .box-tools .btn-box-tool {
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    color: #97a0b3;
+    transition: color 0.3s;
+}
+
+.user-activity-widget .box-tools .btn-box-tool:hover {
+    color: #3c8dbc;
+}
+
+.user-activity-widget .activity-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.user-activity-widget table {
+    margin-bottom: 0;
+}
+
+.user-activity-widget table th {
+    font-weight: 500;
+    color: #666;
+    border-bottom: 2px solid #f4f4f4;
+    padding: 10px 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.user-activity-widget table td {
+    padding: 12px 8px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f4f4f4;
+}
+
+.user-activity-widget tr.active-user {
+    background-color: #f0f8ff;
+}
+
+.user-activity-widget tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Status Icons */
+.user-activity-widget .fa-circle {
+    font-size: 10px;
+}
+
+.user-activity-widget .text-success {
+    color: #00a65a;
+}
+
+.user-activity-widget .text-danger {
+    color: #dd4b39;
+}
+
+.user-activity-widget .text-info {
+    color: #00c0ef;
+}
+
+/* User Info */
+.user-activity-widget .user-info strong {
+    display: block;
+    color: #333;
+    font-size: 14px;
+}
+
+.user-activity-widget .user-info small {
+    font-size: 12px;
+    color: #999;
+}
+
+/* Location Info */
+.user-activity-widget .location-info .ip-address {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #666;
+}
+
+.user-activity-widget .location-info small {
+    font-size: 12px;
+}
+
+.user-activity-widget .location-info i {
+    margin-right: 4px;
+}
+
+/* Device Info */
+.user-activity-widget .device-info small {
+    display: block;
+    font-size: 12px;
+}
+
+/* Activity Time */
+.user-activity-widget .activity-time span {
+    color: #333;
+    font-size: 13px;
+}
+
+.user-activity-widget .activity-time small {
+    font-size: 11px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .user-activity-widget table {
+        font-size: 12px;
+    }
+    
+    .user-activity-widget table th,
+    .user-activity-widget table td {
+        padding: 8px 4px;
+    }
+    
+    .user-activity-widget .widget-header h3 {
+        font-size: 16px;
+    }
+    
+    .user-activity-widget .box-tools .label {
+        display: none;
+    }
+}
+
+/* Scrollbar styling */
+.user-activity-widget .activity-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.user-activity-widget .activity-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.user-activity-widget .activity-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.user-activity-widget .activity-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Animation for new entries */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-activity-widget tr {
+    animation: fadeIn 0.3s ease-out;
+}

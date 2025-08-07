@@ -1,6 +1,7 @@
 {
   "name": "usercontrolform.web",
   "dependencies": {
+    "@microsoft/signalr": "^8.0.0",
     "@serenity-is/corelib": "./node_modules/.dotnet/serenity.corelib",
     "@serenity-is/demo.northwind": "./node_modules/.dotnet/serenity.demo.northwind",
     "@serenity-is/extensions": "./node_modules/.dotnet/serenity.extensions",

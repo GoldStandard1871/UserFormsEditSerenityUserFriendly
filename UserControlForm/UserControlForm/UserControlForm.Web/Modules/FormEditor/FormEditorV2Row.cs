@@ -7,9 +7,9 @@ namespace UserControlForm.FormEditor
 {
     [ConnectionKey("Default"), Module("FormEditor"), TableName("FormEditorV2")]
     [DisplayName("Form Editor V2"), InstanceName("Form")]
-    [ReadPermission("Administration:General")]
-    [ModifyPermission("Administration:General")]
-    [ServiceLookupPermission("Administration:General")]
+    [ReadPermission("FormEditor:View")]
+    [ModifyPermission("FormEditor:Edit")]
+    [ServiceLookupPermission("FormEditor:View")]
     public sealed class FormEditorV2Row : Row<FormEditorV2Row.RowFields>, IIdRow, INameRow
     {
         [DisplayName("Id"), Identity, IdProperty]

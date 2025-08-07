@@ -19,39 +19,12 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
 
     private layoutSettings: FormLayoutSettings;
     private fieldSettings: Map<string, FormFieldSettings> = new Map();
-    private isAdmin: boolean = false;
 
     constructor(container: JQuery<HTMLElement>) {
         super(container);
-        this.checkUserPermissions();
         this.initializeFormEditor();
     }
 
-    private checkUserPermissions(): void {
-        // Admin kontrolü - ScriptData'dan kullanıcı bilgisini al
-        const userDataScript = (window as any).Q?.ScriptData?.UserData;
-        if (userDataScript) {
-            this.isAdmin = userDataScript.IsAdmin === true;
-            console.log(`User admin status from ScriptData: ${this.isAdmin}, Username: ${userDataScript.Username}`);
-        } else {
-            // Fallback - eğer ScriptData yoksa Authorization kontrolü yap
-            this.isAdmin = Authorization.hasPermission("Administration:General") || 
-                           Authorization.hasPermission("Administration") ||
-                           Authorization.hasPermission("FormEditor:ManageRequiredFields");
-            console.log(`User admin status from Authorization: ${this.isAdmin}`);
-        }
-    }
-
-    private removeAdminControls(): void {
-        // Admin olmayan kullanıcılar için admin kontrollerini kaldır
-        this.element.find('.required-field-toggle').remove();
-        this.element.find('.required-checkbox').parent().remove();
-        
-        // Event handler'ları kaldır
-        this.element.off('change', '.required-checkbox');
-        
-        console.log('Admin controls removed for non-admin user');
-    }
 
     protected createToolbarExtensions(): void {
         super.createToolbarExtensions();
@@ -117,11 +90,19 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
         );
     }
 
-    private initializeFormEditor(): void {
-        this.loadUserSettings();
+    private async initializeFormEditor(): Promise<void> {
+        // Önce kullanıcı ayarlarını yükle (admin bilgisi dahil)
+        await this.loadUserSettings();
+        
+        // Sonra kontrolleri kur
         this.setupFieldControls();
         this.setupHiddenFieldsEvents();
         this.applyLayoutSettings();
+        
+        // Grid yüklendikten sonra field kontrollerini ekle
+        setTimeout(() => {
+            this.addFieldControls();
+        }, 100);
     }
 
     protected createSlickGrid(): Slick.Grid {
@@ -157,7 +138,6 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
         const rows = $(gridContainer).find('.slick-row');
         
         console.log("Grid rows found:", rows.length);
-        console.log("Grid container:", gridContainer);
         
         rows.each((index, rowElement) => {
             const $row = $(rowElement);
@@ -175,7 +155,12 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
                 const $cell = $(cellElement);
                 const column = this.slickGrid.getColumns()[cellIndex];
                 
-                if (!column || column.field === 'Id' || $cell.find('.hide-field-toggle').length > 0) {
+                if (!column || column.field === 'Id') {
+                    return;
+                }
+                
+                // Eğer kontroller zaten eklenmişse, tekrar ekleme
+                if ($cell.find('.hide-field-toggle').length > 0) {
                     return;
                 }
                 
@@ -186,7 +171,7 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
                 $cell.attr('data-field-id', fieldId);
                 $cell.attr('data-field-name', fieldName);
                 
-                // Gizleme butonu ekle
+                // Gizleme butonu ekle (herkes görebilir)
                 const hideButton = $(`
                     <button class="hide-field-toggle" title="Alanı Gizle">
                         <i class="fa fa-eye-slash"></i>
@@ -194,32 +179,6 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
                 `);
                 
                 $cell.append(hideButton);
-                
-                // Zorunlu alan checkbox'ı - sadece admin için
-                if (this.isAdmin) {
-                    const requiredCheckbox = $(`
-                        <label class="required-field-toggle" title="Zorunlu Alan">
-                            <input type="checkbox" class="required-checkbox" data-field-id="${fieldId}" />
-                            <span class="required-indicator">*</span>
-                        </label>
-                    `);
-                    
-                    // Kayıtlı ayardan zorunlu durumu kontrol et
-                    const fieldSettings = this.fieldSettings.get(fieldId);
-                    if (fieldSettings?.required) {
-                        requiredCheckbox.find('input').prop('checked', true);
-                        $cell.addClass('required-field');
-                    }
-                    
-                    $cell.append(requiredCheckbox);
-                } else {
-                    // Admin değilse sadece zorunlu alan göstergesi ekle
-                    const fieldSettings = this.fieldSettings.get(fieldId);
-                    if (fieldSettings?.required) {
-                        $cell.addClass('required-field');
-                        $cell.append('<span class="required-indicator-readonly">*</span>');
-                    }
-                }
             });
         });
         
@@ -230,28 +189,6 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
 
 
     private setupFieldControls(): void {
-        // Zorunlu alan checkbox değişimi - sadece admin için
-        if (this.isAdmin) {
-            this.element.on('change', '.required-checkbox', (e) => {
-                const checkbox = $(e.currentTarget);
-                const fieldId = checkbox.data('field-id');
-                const isRequired = checkbox.prop('checked');
-                const cell = checkbox.closest('.slick-cell');
-                
-                if (isRequired) {
-                    cell.addClass('required-field');
-                } else {
-                    cell.removeClass('required-field');
-                }
-                
-                const settings = this.fieldSettings.get(fieldId) || {} as FormFieldSettings;
-                settings.required = isRequired;
-                this.fieldSettings.set(fieldId, settings);
-                
-                console.log(`Field ${fieldId} required: ${isRequired}`);
-            });
-        }
-        
         this.element.on('click', '.hide-form-toggle', (e) => {
             const formRow = $(e.currentTarget).closest('.form-row');
             const formId = formRow.data('form-id');
@@ -448,16 +385,8 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
         try {
             const response = await FormEditorV2Service.GetUserSettings({});
 
-            // Endpoint'ten gelen admin bilgisini kullan - bu en güvenilir kaynak
-            if (response.IsAdmin !== undefined) {
-                this.isAdmin = response.IsAdmin;
-                console.log(`User admin status from server (final): ${this.isAdmin}`);
-                
-                // Admin değilse ve kontroller eklenmiş ise kaldır
-                if (!this.isAdmin) {
-                    this.removeAdminControls();
-                }
-            }
+            // Debug bilgileri
+            console.log(`GetUserSettings Response - UserId: ${response.UserId}, Username: ${response.Username}`);
 
             if (response.Settings) {
                 const settings = JSON.parse(response.Settings);
@@ -472,8 +401,7 @@ export class FormEditorV2Grid extends EntityGrid<FormEditorV2Row, any> {
                     this.fieldSettings.set(field.fieldId, {
                         width: field.width,
                         hidden: field.hidden,
-                        fieldHidden: field.fieldHidden,
-                        required: field.required
+                        fieldHidden: field.fieldHidden
                     });
                 });
             } else {

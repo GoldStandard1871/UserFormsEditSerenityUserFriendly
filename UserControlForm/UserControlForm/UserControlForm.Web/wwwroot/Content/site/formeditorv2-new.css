@@ -277,76 +277,6 @@
     font-size: 11px;
 }
 
-/* Zorunlu alan stilleri */
-.required-field-toggle {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    padding: 2px 6px;
-    background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 3px;
-}
-
-.required-field-toggle:hover {
-    background: #f8f9fa;
-    border-color: #adb5bd;
-}
-
-.required-checkbox {
-    margin-right: 4px;
-    cursor: pointer;
-}
-
-.required-indicator {
-    color: #dc3545;
-    font-weight: bold;
-    font-size: 16px;
-    line-height: 1;
-}
-
-/* Admin olmayan kullanıcılar için sadece görüntüleme */
-.required-indicator-readonly {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    color: #dc3545;
-    font-weight: bold;
-    font-size: 18px;
-    line-height: 1;
-    padding: 2px 6px;
-    background: #fff;
-    border: 1px solid #f5c6cb;
-    border-radius: 3px;
-}
-
-/* Zorunlu alan vurgulama */
-.slick-cell.required-field {
-    position: relative;
-}
-
-.slick-cell.required-field::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 2px solid #dc354530;
-    border-radius: 3px;
-    pointer-events: none;
-}
-
-/* Form alanı için zorunlu gösterge */
-.form-field.required-field .field-label::after {
-    content: ' *';
-    color: #dc3545;
-    font-weight: bold;
-}
-
 /* Slick grid cell içindeki kontrollerin konumlandırması */
 .slick-cell {
     position: relative;
@@ -355,44 +285,17 @@
 .slick-cell .hide-field-toggle {
     position: absolute;
     top: 5px;
-    right: 60px;
-    z-index: 10;
-}
-
-.slick-cell .required-field-toggle {
-    position: absolute;
-    top: 5px;
     right: 5px;
     z-index: 10;
 }
 
-.slick-cell .required-indicator-readonly {
-    z-index: 10;
-}
-
 /* Hover efektleri */
-.slick-cell .hide-field-toggle,
-.slick-cell .required-field-toggle {
+.slick-cell .hide-field-toggle {
     opacity: 0;
     transition: opacity 0.2s;
 }
 
-.slick-cell:hover .hide-field-toggle,
-.slick-cell:hover .required-field-toggle {
+.slick-cell:hover .hide-field-toggle {
     opacity: 1;
-}
-
-/* Required field her zaman görünsün */
-.slick-cell.required-field .required-field-toggle,
-.slick-cell.required-field .required-indicator-readonly {
-    opacity: 1 !important;
-}
-
-/* Non-admin kullanıcılar için zorunlu alan checkbox'ını tamamen gizle */
-body:not(.is-admin) .required-field-toggle,
-body:not(.is-admin) .required-checkbox {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
 }
 

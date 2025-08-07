@@ -5,8 +5,6 @@ using System.Data;
 using Newtonsoft.Json.Linq;
 using Serenity;
 using UserControlForm.UserControlForm.Entities;
-using System.Linq;
-using Serenity.Web;
 using MyRow = UserControlForm.UserControlForm.UserFormSettingsRow;
 
 namespace UserControlForm.UserControlForm.Endpoints
@@ -15,45 +13,22 @@ namespace UserControlForm.UserControlForm.Endpoints
     [ConnectionKey(typeof(MyRow)), ServiceAuthorize(typeof(MyRow))]
     public class FormEditorV2Endpoint : ServiceEndpoint
     {
-        private readonly IUserAccessor userAccessor;
-        
-        public FormEditorV2Endpoint(IUserAccessor userAccessor)
-        {
-            this.userAccessor = userAccessor;
-        }
-        
         private int GetCurrentUserId()
         {
-            // IUserAccessor ile kullanıcı bilgisini al
-            var user = userAccessor.User;
+            var userId = User.GetIdentifier();
+            System.Diagnostics.Debug.WriteLine($"GetCurrentUserId - Raw UserId: {userId}");
             
-            if (user != null)
+            if (string.IsNullOrEmpty(userId))
             {
-                var userId = user.GetIdentifier();
-                System.Diagnostics.Debug.WriteLine($"GetCurrentUserId from IUserAccessor - UserId: {userId}");
-                System.Diagnostics.Debug.WriteLine($"Username: {userAccessor.User?.Identity?.Name}");
-                
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    return Convert.ToInt32(userId);
-                }
+                // Test için sabit ID
+                System.Diagnostics.Debug.WriteLine("UYARI: Kullanıcı ID bulunamadı, test için 1 kullanılıyor!");
+                return 1;
             }
             
-            // Fallback - User.GetIdentifier() kullan
-            var userIdFallback = User.GetIdentifier();
-            System.Diagnostics.Debug.WriteLine($"GetCurrentUserId Fallback - Raw UserId: {userIdFallback}");
-            
-            if (string.IsNullOrEmpty(userIdFallback))
-            {
-                System.Diagnostics.Debug.WriteLine("HATA: Kullanıcı ID bulunamadı!");
-                throw new ValidationError("Kullanıcı kimliği alınamadı. Lütfen tekrar giriş yapın.");
-            }
-            
-            var userIdInt = Convert.ToInt32(userIdFallback);
-            System.Diagnostics.Debug.WriteLine($"GetCurrentUserId - Final UserId: {userIdInt}");
+            var userIdInt = Convert.ToInt32(userId);
+            System.Diagnostics.Debug.WriteLine($"GetCurrentUserId - Parsed UserId: {userIdInt}");
             return userIdInt;
         }
-
 
         [HttpPost, AuthorizeUpdate(typeof(MyRow))]
         public ServiceResponse SaveUserSettings(IUnitOfWork uow, SaveUserSettingsRequest request)
@@ -80,8 +55,6 @@ namespace UserControlForm.UserControlForm.Endpoints
                         UpdateDate = DateTime.Now,
                         UpdateUserId = userId
                     });
-                    
-                    System.Diagnostics.Debug.WriteLine($"Settings updated for UserId: {userId}");
                 }
                 else
                 {
@@ -92,8 +65,6 @@ namespace UserControlForm.UserControlForm.Endpoints
                         InsertDate = DateTime.Now,
                         InsertUserId = userId
                     });
-                    
-                    System.Diagnostics.Debug.WriteLine($"Settings inserted for UserId: {userId}");
                 }
 
                 return new ServiceResponse();
@@ -109,28 +80,14 @@ namespace UserControlForm.UserControlForm.Endpoints
         public GetUserSettingsResponse GetUserSettings(IDbConnection connection, GetUserSettingsRequest request)
         {
             var userId = GetCurrentUserId();
-            var username = userAccessor.User?.Identity?.Name ?? "Unknown";
-            
-            System.Diagnostics.Debug.WriteLine($"GetUserSettings - UserId: {userId}, Username: {username}");
             
             var settings = connection.TryFirst<UserFormSettingsRow>(q => q
                 .Select(UserFormSettingsRow.Fields.Settings)
                 .Where(UserFormSettingsRow.Fields.UserId == userId));
 
-            if (settings != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"Settings found for UserId: {userId}");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"No settings found for UserId: {userId}");
-            }
-
             return new GetUserSettingsResponse
             {
-                Settings = settings?.Settings,
-                UserId = userId,
-                Username = username
+                Settings = settings?.Settings
             };
         }
     }
@@ -147,7 +104,5 @@ namespace UserControlForm.UserControlForm.Endpoints
     public class GetUserSettingsResponse : ServiceResponse
     {
         public string Settings { get; set; }
-        public int UserId { get; set; }
-        public string Username { get; set; }
     }
 }
