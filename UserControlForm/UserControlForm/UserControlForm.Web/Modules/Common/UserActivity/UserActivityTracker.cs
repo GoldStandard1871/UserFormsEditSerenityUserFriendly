@@ -167,17 +167,29 @@ namespace UserControlForm.Common.UserActivity
             }
         }
         
-        // Sadece online durumunu offline yap (logout kaydı eklemez)
+        // Sadece online durumunu offline yap ve logout zamanını kaydet
         public static void SetOfflineStatus(int userId)
         {
             if (_userActivities.TryGetValue(userId, out var activity))
             {
+                var wasOnline = activity.IsOnline;
                 activity.IsOnline = false;
                 activity.LastActivityTime = DateTime.Now;
                 activity.ConnectionId = null;
                 activity.Status = UserStatus.Offline;
-                // Logout kaydı EKLEME, sadece status değiştir
-                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Status set to offline for UserId: {userId} (no logout record)");
+                
+                // Eğer kullanıcı online idi ve şimdi offline oluyorsa, logout zamanını kaydet
+                if (wasOnline)
+                {
+                    var lastLogin = activity.LoginHistoryList?.LastOrDefault();
+                    if (lastLogin != null && lastLogin.LogoutTime == null)
+                    {
+                        lastLogin.LogoutTime = DateTime.Now;
+                        System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] User {activity.Username} went OFFLINE at {DateTime.Now:HH:mm:ss}");
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Status set to offline for UserId: {userId}");
             }
         }
         

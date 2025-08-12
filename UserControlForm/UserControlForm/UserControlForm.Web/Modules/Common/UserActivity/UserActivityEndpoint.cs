@@ -50,10 +50,27 @@ namespace UserControlForm.Common.UserActivity
                     // Logout kaydı (varsa)
                     if (loginRecord.LogoutTime.HasValue)
                     {
+                        // Oturum süresini hesapla
+                        var sessionDuration = loginRecord.LogoutTime.Value - loginRecord.LoginTime;
+                        var durationText = "";
+                        
+                        if (sessionDuration.TotalHours >= 1)
+                        {
+                            durationText = $" (Oturum süresi: {(int)sessionDuration.TotalHours} saat {sessionDuration.Minutes} dakika)";
+                        }
+                        else if (sessionDuration.TotalMinutes >= 1)
+                        {
+                            durationText = $" (Oturum süresi: {(int)sessionDuration.TotalMinutes} dakika)";
+                        }
+                        else
+                        {
+                            durationText = $" (Oturum süresi: {(int)sessionDuration.TotalSeconds} saniye)";
+                        }
+                        
                         history.Add(new ActivityHistoryItem
                         {
                             ActivityType = "Logout",
-                            ActivityDetail = "Sistemden çıkış yaptı",
+                            ActivityDetail = "Sistemden çıkış yaptı" + durationText,
                             PageName = "",
                             Timestamp = loginRecord.LogoutTime.Value,
                             Icon = "fa-sign-out",
