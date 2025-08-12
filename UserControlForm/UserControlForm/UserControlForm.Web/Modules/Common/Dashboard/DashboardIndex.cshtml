@@ -319,6 +319,20 @@ ViewData["PageId"] = "Dashboard";
                 
                 loadUserActivities();
                 
+                // Login olduğunda aktivite kaydı oluştur
+                var isNewLogin = sessionStorage.getItem('newLogin') === 'true';
+                if (isNewLogin) {
+                    console.log("New login detected, sending login notification");
+                    connection.invoke("SendHeartbeat")
+                        .then(function() {
+                            console.log("Login activity recorded");
+                            sessionStorage.removeItem('newLogin');
+                        })
+                        .catch(function(err) {
+                            console.error("Failed to record login:", err);
+                        });
+                }
+                
                 // Send heartbeat every 30 seconds
                 setInterval(function() {
                     if (connection.state === signalR.HubConnectionState.Connected) {
@@ -334,7 +348,8 @@ ViewData["PageId"] = "Dashboard";
             });
     }
     
-    // Show user activity history modal
+    // Aktivite geçmişi kaldırıldı
+    /*
     function showUserHistory(userId, username) {
         // Create modal HTML
         var modalHtml = `
@@ -417,6 +432,7 @@ ViewData["PageId"] = "Dashboard";
             }
         });
     }
+    */
     
     // Load user activities
     function loadUserActivities() {
@@ -467,7 +483,7 @@ ViewData["PageId"] = "Dashboard";
                         
                         html += '<div class="activity-item ' + statusClass + '">';
                         html += '  <div class="activity-status">' + statusIcon + '</div>';
-                        html += '  <div class="activity-info" data-userid="' + activity.UserId + '" style="cursor: pointer;">';
+                        html += '  <div class="activity-info">';
                         html += '    <div class="user-name">' + (activity.DisplayName || activity.Username) + '</div>';
                         html += '    <div class="user-details">';
                         html += '      <span class="detail-item"><i class="fa fa-calendar"></i> ' + displayTime + '</span>';
@@ -489,12 +505,7 @@ ViewData["PageId"] = "Dashboard";
                 $('#user-activity-widget').html(html);
                 $('#online-count').text(onlineCount + ' Online');
                 
-                // Add click event to user items
-                $('.activity-info').on('click', function() {
-                    var userId = $(this).data('userid');
-                    var username = $(this).find('.user-name').text();
-                    showUserHistory(userId, username);
-                });
+                // Click eventi kaldırıldı
             },
             error: function(xhr, status, error) {
                 console.error('Error loading activities:', error);

@@ -64,11 +64,26 @@ public partial class AccountPage : Controller
             if (result == PasswordValidationResult.Valid)
             {
                 var principal = userClaimCreator.CreatePrincipal(username, authType: "Password");
-                HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal).GetAwaiter().GetResult();
+                
+                // Cookie options ile manuel sign in deneyelim
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
+                };
+                
+                HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties).GetAwaiter().GetResult();
+                
+                // Cookie oluşturuldu mu kontrol et
+                System.Console.WriteLine($"[AccountPage] SignInAsync completed for {username}");
+                System.Diagnostics.Debug.WriteLine($"[AccountPage] Cookie should be created for {username}");
                 
                 // Login olduğunda kullanıcı aktivitesini kaydet
                 try
                 {
+                    // Önce log at, RecordLogin çağrılıyor mu görelim
+                    System.Console.WriteLine($"[AccountPage-CONSOLE] Login successful for: {username}");
+                    System.Diagnostics.Trace.WriteLine($"[AccountPage-TRACE] Login successful for: {username}");
                     var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                     var userId = !string.IsNullOrEmpty(userIdClaim) ? Convert.ToInt32(userIdClaim) : 0;
                     var displayName = principal.FindFirst("DisplayName")?.Value ?? username;

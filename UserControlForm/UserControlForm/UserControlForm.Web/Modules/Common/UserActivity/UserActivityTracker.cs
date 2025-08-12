@@ -22,16 +22,9 @@ namespace UserControlForm.Common.UserActivity
             public string UserAgent { get; set; }
             public string ConnectionId { get; set; }
             public UserStatus Status { get; set; }
-            public List<LoginHistory> LoginHistoryList { get; set; } = new List<LoginHistory>();
+            // Login geçmişi kaldırıldı
         }
         
-        public class LoginHistory
-        {
-            public DateTime LoginTime { get; set; }
-            public DateTime? LogoutTime { get; set; }
-            public string IpAddress { get; set; }
-            public string UserAgent { get; set; }
-        }
         
         public enum UserStatus
         {
@@ -60,17 +53,8 @@ namespace UserControlForm.Common.UserActivity
                         IpAddress = ipAddress,
                         UserAgent = userAgent,
                         ConnectionId = connectionId,
-                        Status = UserStatus.Online,
-                        LoginHistoryList = new List<LoginHistory>()
+                        Status = UserStatus.Online
                     };
-                    
-                    // İlk login kaydını ekle
-                    newActivity.LoginHistoryList.Add(new LoginHistory
-                    {
-                        LoginTime = DateTime.Now,
-                        IpAddress = ipAddress,
-                        UserAgent = userAgent
-                    });
                     
                     System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] New user created with first login record");
                     return newActivity;
@@ -88,25 +72,7 @@ namespace UserControlForm.Common.UserActivity
                     existing.UserAgent = userAgent;
                     existing.DisplayName = displayName;
                     
-                    // Login geçmişini koru ve yeni login ekle
-                    if (existing.LoginHistoryList == null)
-                        existing.LoginHistoryList = new List<LoginHistory>();
-                    
-                    // Son 10 login kaydını tut
-                    if (existing.LoginHistoryList.Count >= 10)
-                    {
-                        existing.LoginHistoryList.RemoveAt(0);
-                    }
-                    
-                    // Yeni login kaydı ekle
-                    existing.LoginHistoryList.Add(new LoginHistory
-                    {
-                        LoginTime = DateTime.Now,
-                        IpAddress = ipAddress,
-                        UserAgent = userAgent
-                    });
-                    
-                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Added login record #{existing.LoginHistoryList.Count} for {username}");
+                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] User {username} logged in");
                     return existing;
                 });
         }
@@ -141,8 +107,7 @@ namespace UserControlForm.Common.UserActivity
                     IpAddress = ipAddress,
                     UserAgent = userAgent,
                     ConnectionId = connectionId,
-                    Status = UserStatus.Online,
-                    LoginHistoryList = new List<LoginHistory>() // Boş liste, login kaydı yok
+                    Status = UserStatus.Online
                 };
                 
                 _userActivities.TryAdd(userId, newActivity);
@@ -161,13 +126,7 @@ namespace UserControlForm.Common.UserActivity
                 activity.ConnectionId = null;
                 activity.Status = UserStatus.Offline;
                 
-                // Son login kaydına logout zamanını ekle
-                var lastLogin = activity.LoginHistoryList?.LastOrDefault();
-                if (lastLogin != null && lastLogin.LogoutTime == null)
-                {
-                    lastLogin.LogoutTime = DateTime.Now;
-                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Logout recorded for UserId: {userId} at {DateTime.Now}");
-                }
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Logout recorded for UserId: {userId} at {DateTime.Now}");
             }
         }
         
@@ -182,15 +141,9 @@ namespace UserControlForm.Common.UserActivity
                 activity.ConnectionId = null;
                 activity.Status = UserStatus.Offline;
                 
-                // Eğer kullanıcı online idi ve şimdi offline oluyorsa, logout zamanını kaydet
                 if (wasOnline)
                 {
-                    var lastLogin = activity.LoginHistoryList?.LastOrDefault();
-                    if (lastLogin != null && lastLogin.LogoutTime == null)
-                    {
-                        lastLogin.LogoutTime = DateTime.Now;
-                        System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] User {activity.Username} went OFFLINE at {DateTime.Now:HH:mm:ss}");
-                    }
+                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] User {activity.Username} went OFFLINE at {DateTime.Now:HH:mm:ss}");
                 }
                 
                 System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Status set to offline for UserId: {userId}");

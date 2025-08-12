@@ -24,6 +24,8 @@ namespace UserControlForm.Common.UserActivity
             };
         }
         
+        // Aktivite ge\u00e7mi\u015fi kald\u0131r\u0131ld\u0131
+        /*
         [HttpGet]
         public ListResponse<ActivityHistoryItem> GetHistory([FromQuery] int userId)
         {
@@ -104,15 +106,6 @@ namespace UserControlForm.Common.UserActivity
                 TotalCount = history.Count
             };
         }
-    }
-    
-    public class ActivityHistoryItem
-    {
-        public string ActivityType { get; set; }
-        public string ActivityDetail { get; set; }
-        public string PageName { get; set; }
-        public DateTime Timestamp { get; set; }
-        public string Icon { get; set; }
-        public string BadgeColor { get; set; }
+        */
     }
 }
