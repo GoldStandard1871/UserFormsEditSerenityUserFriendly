@@ -75,15 +75,28 @@ public partial class AccountPage : Controller
                     var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
                     var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
                     
-                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Login successful - UserId: {userId}, Username: {username}, DisplayName: {displayName}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ========================================");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] LOGIN SUCCESS for {username}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] UserId: {userId}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] DisplayName: {displayName}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] IP: {ipAddress}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ========================================");
                     
                     // UserActivityTracker'a login kaydını ekle
-                    UserActivityTracker.RecordLogin(userId, username, displayName, ipAddress, userAgent, $"login-{userId}-{DateTime.Now.Ticks}");
-                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ✅ UserActivityTracker.RecordLogin called for user: {username}");
+                    if (userId > 0)
+                    {
+                        UserActivityTracker.RecordLogin(userId, username, displayName, ipAddress, userAgent, $"login-{userId}-{DateTime.Now.Ticks}");
+                        System.Diagnostics.Debug.WriteLine($"[AccountPage] ✅ UserActivityTracker.RecordLogin called successfully");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AccountPage] ⚠️ WARNING: UserId is 0 or invalid for user {username}");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Error tracking login: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ❌ ERROR tracking login: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Stack: {ex.StackTrace}");
                     // Exception'ı yutuyoruz, login işlemini etkilemesin
                 }
                 

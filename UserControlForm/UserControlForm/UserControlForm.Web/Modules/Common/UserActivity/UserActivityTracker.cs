@@ -103,9 +103,22 @@ namespace UserControlForm.Common.UserActivity
         // SignalR connection güncellemesi (login kaydı eklemez)
         public static void UpdateConnection(int userId, string username, string displayName, string ipAddress, string userAgent, string connectionId)
         {
-            _userActivities.AddOrUpdate(userId, 
-                // Eğer kullanıcı yoksa yeni oluştur (ama login kaydı ekleme)
-                new UserActivityInfo
+            System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] UpdateConnection called for {username} (UserId: {userId})");
+            
+            // Kullanıcı zaten varsa ve online ise sadece connection güncelle
+            if (_userActivities.TryGetValue(userId, out var existingActivity))
+            {
+                existingActivity.ConnectionId = connectionId;
+                existingActivity.LastActivityTime = DateTime.Now;
+                existingActivity.IsOnline = true;
+                existingActivity.Status = UserStatus.Online;
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Updated existing user connection: {username} is now ONLINE");
+            }
+            else
+            {
+                // Kullanıcı hiç yoksa (ilk kez bağlanıyor), yeni kayıt oluştur
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Creating new activity record for {username}");
+                var newActivity = new UserActivityInfo
                 {
                     UserId = userId,
                     Username = username,
@@ -118,20 +131,19 @@ namespace UserControlForm.Common.UserActivity
                     ConnectionId = connectionId,
                     Status = UserStatus.Online,
                     LoginHistoryList = new List<LoginHistory>()
-                }, 
-                (key, existing) => 
+                };
+                
+                // İlk bağlantı için login kaydı ekle
+                newActivity.LoginHistoryList.Add(new LoginHistory
                 {
-                    // Mevcut kullanıcı varsa sadece connection bilgilerini güncelle
-                    existing.ConnectionId = connectionId;
-                    existing.LastActivityTime = DateTime.Now;
-                    existing.IsOnline = true;
-                    existing.Status = UserStatus.Online;
-                    
-                    // Eğer kullanıcı daha önce offline olmuşsa ve tekrar bağlanıyorsa
-                    // Ama bu bir sayfa yenilemesi veya SignalR reconnect ise yeni login kaydı ekleme
-                    
-                    return existing;
+                    LoginTime = DateTime.Now,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent
                 });
+                
+                _userActivities.TryAdd(userId, newActivity);
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] New user added: {username} is ONLINE");
+            }
         }
         
         
