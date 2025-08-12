@@ -31,69 +31,53 @@ namespace UserControlForm.Common.UserActivity
             
             // Memory'den kullanıcı aktivitesini al
             var currentActivity = UserActivityTracker.GetUserActivity(userId);
-            if (currentActivity != null)
+            if (currentActivity != null && currentActivity.LoginHistoryList != null)
             {
-                // Login kaydı
-                if (currentActivity.LoginTime != default(DateTime))
+                // Tüm login/logout geçmişini ekle
+                foreach (var loginRecord in currentActivity.LoginHistoryList.OrderByDescending(x => x.LoginTime))
                 {
+                    // Login kaydı
                     history.Add(new ActivityHistoryItem
                     {
                         ActivityType = "Login",
                         ActivityDetail = "Sisteme giriş yaptı",
-                        PageName = "Dashboard",
-                        Timestamp = currentActivity.LoginTime,
+                        PageName = loginRecord.IpAddress,
+                        Timestamp = loginRecord.LoginTime,
                         Icon = "fa-sign-in",
                         BadgeColor = "bg-success"
                     });
-                }
-                
-                // Sayfa geçmişi (PageHistory'den)
-                if (currentActivity.PageHistory != null && currentActivity.PageHistory.Any())
-                {
-                    foreach (var visit in currentActivity.PageHistory)
+                    
+                    // Logout kaydı (varsa)
+                    if (loginRecord.LogoutTime.HasValue)
                     {
                         history.Add(new ActivityHistoryItem
                         {
-                            ActivityType = "PageView",
-                            ActivityDetail = visit.Action ?? $"{visit.PageName} sayfasına gitti",
-                            PageName = visit.PageName,
-                            Timestamp = visit.VisitTime,
-                            Icon = "fa-file-o",
-                            BadgeColor = "bg-info"
+                            ActivityType = "Logout",
+                            ActivityDetail = "Sistemden çıkış yaptı",
+                            PageName = "",
+                            Timestamp = loginRecord.LogoutTime.Value,
+                            Icon = "fa-sign-out",
+                            BadgeColor = "bg-danger"
                         });
                     }
                 }
                 
-                // Mevcut sayfa (eğer henüz history'e eklenmemişse)
-                if (currentActivity.IsOnline && !string.IsNullOrEmpty(currentActivity.CurrentPage))
+                // Şu an online ise ve henüz logout kaydı yoksa
+                if (currentActivity.IsOnline)
                 {
-                    var lastPageInHistory = currentActivity.PageHistory?.LastOrDefault();
-                    if (lastPageInHistory == null || lastPageInHistory.PageName != currentActivity.CurrentPage)
+                    var lastLogin = currentActivity.LoginHistoryList.LastOrDefault();
+                    if (lastLogin != null && !lastLogin.LogoutTime.HasValue)
                     {
                         history.Add(new ActivityHistoryItem
                         {
-                            ActivityType = "CurrentPage",
-                            ActivityDetail = $"Şu an {currentActivity.CurrentPage} sayfasında",
-                            PageName = currentActivity.CurrentPage,
-                            Timestamp = currentActivity.LastActivityTime,
+                            ActivityType = "CurrentStatus",
+                            ActivityDetail = "Şu an çevrimiçi",
+                            PageName = currentActivity.IpAddress,
+                            Timestamp = DateTime.Now,
                             Icon = "fa-circle",
                             BadgeColor = "bg-primary"
                         });
                     }
-                }
-                
-                // Offline ise çıkış kaydı
-                if (!currentActivity.IsOnline)
-                {
-                    history.Add(new ActivityHistoryItem
-                    {
-                        ActivityType = "Logout",
-                        ActivityDetail = "Sistemden çıkış yaptı",
-                        PageName = "",
-                        Timestamp = currentActivity.LastActivityTime,
-                        Icon = "fa-sign-out",
-                        BadgeColor = "bg-danger"
-                    });
                 }
             }
             

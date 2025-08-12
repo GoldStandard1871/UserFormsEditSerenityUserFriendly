@@ -43,7 +43,7 @@ namespace UserControlForm.Common.UserActivity
                     System.Diagnostics.Debug.WriteLine($"[UserActivityHub] Total active users: {activities.Count}");
                     foreach (var act in activities)
                     {
-                        System.Diagnostics.Debug.WriteLine($"  - {act.Username}: Online={act.IsOnline}, Page={act.CurrentPage}, History={act.PageHistory?.Count ?? 0} items");
+                        System.Diagnostics.Debug.WriteLine($"  - {act.Username}: Online={act.IsOnline}, LoginHistory={act.LoginHistoryList?.Count ?? 0} items");
                     }
                     
                     // Notify all clients about the new online user
@@ -99,43 +99,6 @@ namespace UserControlForm.Common.UserActivity
             return Task.CompletedTask;
         }
         
-        public async Task UpdatePageLocation(string pageName, string action = null)
-        {
-            var user = userAccessor.User;
-            System.Diagnostics.Debug.WriteLine($"[UserActivityHub] UpdatePageLocation called - Page: {pageName}, Action: {action}");
-            
-            if (user?.Identity?.IsAuthenticated == true)
-            {
-                var userId = Convert.ToInt32(userAccessor.User?.GetIdentifier());
-                var username = user.Identity.Name;
-                
-                System.Diagnostics.Debug.WriteLine($"[UserActivityHub] 📍 Page Update - User: {username} (ID: {userId}) moved to: {pageName}");
-                
-                UserActivityTracker.UpdateCurrentPage(userId, pageName, action);
-                
-                // Log the updated activity
-                var activity = UserActivityTracker.GetUserActivity(userId);
-                if (activity != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[UserActivityHub] Activity after update - CurrentPage: {activity.CurrentPage}, History: {activity.PageHistory?.Count ?? 0} items");
-                    if (activity.PageHistory != null && activity.PageHistory.Any())
-                    {
-                        foreach (var page in activity.PageHistory.TakeLast(3))
-                        {
-                            System.Diagnostics.Debug.WriteLine($"    - {page.VisitTime:HH:mm:ss}: {page.PageName} - {page.Action}");
-                        }
-                    }
-                }
-                
-                // Tüm kullanıcılara bu kullanıcının sayfa değişikliğini bildir
-                await Clients.All.SendAsync("UserPageChanged", userId, pageName, action);
-                System.Diagnostics.Debug.WriteLine($"[UserActivityHub] ✅ UserPageChanged event sent");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[UserActivityHub] ⚠️ UpdatePageLocation - User not authenticated");
-            }
-        }
         
         private string GetClientIpAddress()
         {

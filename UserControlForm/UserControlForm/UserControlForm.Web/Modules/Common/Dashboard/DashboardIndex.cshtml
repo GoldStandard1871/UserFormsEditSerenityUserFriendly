@@ -307,11 +307,6 @@ ViewData["PageId"] = "Dashboard";
             loadUserActivities();
         });
         
-        // Listen for page changes
-        connection.on("UserPageChanged", function(userId, pageName, action) {
-            console.log("User page changed:", userId, pageName, action);
-            loadUserActivities();
-        });
         
         connection.start()
             .then(function() {
@@ -320,11 +315,6 @@ ViewData["PageId"] = "Dashboard";
                 console.log("👤 Current user:", '@User.Identity.Name');
                 
                 loadUserActivities();
-                
-                // Send current page info after a small delay to ensure connection is stable
-                setTimeout(function() {
-                    updatePageLocation("Dashboard", "Dashboard'ı görüntülüyor");
-                }, 500);
                 
                 // Send heartbeat every 30 seconds
                 setInterval(function() {
@@ -339,20 +329,6 @@ ViewData["PageId"] = "Dashboard";
             .catch(function(err) {
                 console.error("SignalR connection error:", err);
             });
-    }
-    
-    // Update page location - make it global
-    window.updatePageLocation = function(pageName, action) {
-        var connection = window.signalRConnection;
-        if (connection && connection.state === signalR.HubConnectionState.Connected) {
-            connection.invoke("UpdatePageLocation", pageName, action)
-                .then(function() {
-                    console.log("Page location updated:", pageName, action);
-                })
-                .catch(function(err) {
-                    console.error("Error updating page location:", err);
-                });
-        }
     }
     
     // Show user activity history modal
@@ -486,9 +462,6 @@ ViewData["PageId"] = "Dashboard";
                         html += '    <div class="user-details">';
                         html += '      <span class="detail-item"><i class="fa fa-clock-o"></i> ' + timeStr + ' (' + activityDate.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'}) + ')</span>';
                         html += '      <span class="detail-item"><i class="fa fa-globe"></i> ' + (activity.IpAddress || 'Bilinmiyor') + '</span>';
-                        if (activity.CurrentPage) {
-                            html += '      <span class="detail-item"><i class="fa fa-file-o"></i> ' + activity.CurrentPage + '</span>';
-                        }
                         html += '    </div>';
                         html += '  </div>';
                         html += '  <div class="activity-type">';
