@@ -58,7 +58,7 @@ public partial class AccountPage : Controller
                 throw new ArgumentNullException(nameof(userClaimCreator));
 
             var username = request.Username;
-            System.Diagnostics.Debug.WriteLine($"[AccountPage] Login attempt - Username: {username}");
+            System.Diagnostics.Debug.WriteLine($"[AccountPage] Login attempt - Username: {username}, Password length: {request.Password?.Length ?? 0}");
             var result = passwordValidator.Validate(ref username, request.Password);
             System.Diagnostics.Debug.WriteLine($"[AccountPage] Validation result: {result}");
             if (result == PasswordValidationResult.Valid)
