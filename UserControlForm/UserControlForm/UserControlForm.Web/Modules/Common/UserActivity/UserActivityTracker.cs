@@ -44,60 +44,71 @@ namespace UserControlForm.Common.UserActivity
         // Gerçek login işlemi (AccountPage'den çağrılır)
         public static void RecordLogin(int userId, string username, string displayName, string ipAddress, string userAgent, string connectionId)
         {
-            var activity = new UserActivityInfo
-            {
-                UserId = userId,
-                Username = username,
-                DisplayName = displayName,
-                IsOnline = true,
-                LastActivityTime = DateTime.Now,
-                LoginTime = DateTime.Now,
-                IpAddress = ipAddress,
-                UserAgent = userAgent,
-                ConnectionId = connectionId,
-                Status = UserStatus.Online,
-                LoginHistoryList = new List<LoginHistory>()
-            };
+            System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] RecordLogin called for {username} at {DateTime.Now:HH:mm:ss}");
             
-            // Login geçmişine ekle
-            activity.LoginHistoryList.Add(new LoginHistory
-            {
-                LoginTime = DateTime.Now,
-                IpAddress = ipAddress,
-                UserAgent = userAgent
-            });
-            
-            _userActivities.AddOrUpdate(userId, activity, (key, existing) => 
-            {
-                // Mevcut kullanıcı varsa güncelle
-                existing.IsOnline = true;
-                existing.LastActivityTime = DateTime.Now;
-                existing.LoginTime = DateTime.Now;
-                existing.ConnectionId = connectionId;
-                existing.Status = UserStatus.Online;
-                existing.IpAddress = ipAddress;
-                existing.UserAgent = userAgent;
-                existing.DisplayName = displayName;
-                
-                // Login geçmişine ekle
-                if (existing.LoginHistoryList == null)
-                    existing.LoginHistoryList = new List<LoginHistory>();
+            _userActivities.AddOrUpdate(userId, 
+                // Yeni kullanıcı için
+                key => {
+                    var newActivity = new UserActivityInfo
+                    {
+                        UserId = userId,
+                        Username = username,
+                        DisplayName = displayName,
+                        IsOnline = true,
+                        LastActivityTime = DateTime.Now,
+                        LoginTime = DateTime.Now,
+                        IpAddress = ipAddress,
+                        UserAgent = userAgent,
+                        ConnectionId = connectionId,
+                        Status = UserStatus.Online,
+                        LoginHistoryList = new List<LoginHistory>()
+                    };
                     
-                // Son 10 login kaydını tut
-                if (existing.LoginHistoryList.Count >= 10)
-                {
-                    existing.LoginHistoryList.RemoveAt(0);
-                }
+                    // İlk login kaydını ekle
+                    newActivity.LoginHistoryList.Add(new LoginHistory
+                    {
+                        LoginTime = DateTime.Now,
+                        IpAddress = ipAddress,
+                        UserAgent = userAgent
+                    });
                     
-                existing.LoginHistoryList.Add(new LoginHistory
+                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] New user created with first login record");
+                    return newActivity;
+                },
+                // Mevcut kullanıcı için
+                (key, existing) => 
                 {
-                    LoginTime = DateTime.Now,
-                    IpAddress = ipAddress,
-                    UserAgent = userAgent
+                    // Kullanıcı bilgilerini güncelle
+                    existing.IsOnline = true;
+                    existing.LastActivityTime = DateTime.Now;
+                    existing.LoginTime = DateTime.Now;
+                    existing.ConnectionId = connectionId;
+                    existing.Status = UserStatus.Online;
+                    existing.IpAddress = ipAddress;
+                    existing.UserAgent = userAgent;
+                    existing.DisplayName = displayName;
+                    
+                    // Login geçmişini koru ve yeni login ekle
+                    if (existing.LoginHistoryList == null)
+                        existing.LoginHistoryList = new List<LoginHistory>();
+                    
+                    // Son 10 login kaydını tut
+                    if (existing.LoginHistoryList.Count >= 10)
+                    {
+                        existing.LoginHistoryList.RemoveAt(0);
+                    }
+                    
+                    // Yeni login kaydı ekle
+                    existing.LoginHistoryList.Add(new LoginHistory
+                    {
+                        LoginTime = DateTime.Now,
+                        IpAddress = ipAddress,
+                        UserAgent = userAgent
+                    });
+                    
+                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Added login record #{existing.LoginHistoryList.Count} for {username}");
+                    return existing;
                 });
-                
-                return existing;
-            });
         }
         
         // SignalR connection güncellemesi (login kaydı eklemez)
@@ -116,8 +127,9 @@ namespace UserControlForm.Common.UserActivity
             }
             else
             {
-                // Kullanıcı hiç yoksa (ilk kez bağlanıyor), yeni kayıt oluştur
-                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Creating new activity record for {username}");
+                // Kullanıcı hiç yoksa, sadece temel bilgileri oluştur
+                // Login kaydı EKLEME (çünkü bu SignalR bağlantısı, gerçek login değil)
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Creating basic activity record for {username} (no login history)");
                 var newActivity = new UserActivityInfo
                 {
                     UserId = userId,
@@ -130,19 +142,11 @@ namespace UserControlForm.Common.UserActivity
                     UserAgent = userAgent,
                     ConnectionId = connectionId,
                     Status = UserStatus.Online,
-                    LoginHistoryList = new List<LoginHistory>()
+                    LoginHistoryList = new List<LoginHistory>() // Boş liste, login kaydı yok
                 };
                 
-                // İlk bağlantı için login kaydı ekle
-                newActivity.LoginHistoryList.Add(new LoginHistory
-                {
-                    LoginTime = DateTime.Now,
-                    IpAddress = ipAddress,
-                    UserAgent = userAgent
-                });
-                
                 _userActivities.TryAdd(userId, newActivity);
-                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] New user added: {username} is ONLINE");
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] User {username} is ONLINE (waiting for real login)");
             }
         }
         
