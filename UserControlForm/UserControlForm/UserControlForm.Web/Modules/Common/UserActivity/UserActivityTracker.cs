@@ -68,16 +68,33 @@ namespace UserControlForm.Common.UserActivity
             
             _userActivities.AddOrUpdate(userId, activity, (key, existing) => 
             {
-                // Mevcut kullanıcı varsa, sadece güncelle
+                // Eğer kullanıcı zaten online ise yeni login kaydı ekleme
+                if (existing.IsOnline)
+                {
+                    // Sadece connection bilgilerini güncelle
+                    existing.ConnectionId = connectionId;
+                    existing.LastActivityTime = DateTime.Now;
+                    return existing;
+                }
+                
+                // Mevcut kullanıcı offline ise, yeni login olarak kaydet
                 existing.IsOnline = true;
                 existing.LastActivityTime = DateTime.Now;
                 existing.LoginTime = DateTime.Now;
                 existing.ConnectionId = connectionId;
                 existing.Status = UserStatus.Online;
+                existing.IpAddress = ipAddress;
+                existing.UserAgent = userAgent;
                 
                 // Login geçmişine ekle
                 if (existing.LoginHistoryList == null)
                     existing.LoginHistoryList = new List<LoginHistory>();
+                    
+                // Son 10 login kaydını tut
+                if (existing.LoginHistoryList.Count >= 10)
+                {
+                    existing.LoginHistoryList.RemoveAt(0);
+                }
                     
                 existing.LoginHistoryList.Add(new LoginHistory
                 {

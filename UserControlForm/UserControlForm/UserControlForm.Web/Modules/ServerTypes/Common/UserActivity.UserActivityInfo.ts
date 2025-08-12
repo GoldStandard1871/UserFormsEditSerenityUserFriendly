@@ -1,4 +1,4 @@
-﻿import { PageVisit } from "./UserActivity.PageVisit";
+﻿import { LoginHistory } from "./UserActivity.LoginHistory";
 import { UserStatus } from "./UserActivity.UserStatus";
 
 export interface UserActivityInfo {
@@ -12,8 +12,6 @@ export interface UserActivityInfo {
     Location?: string;
     UserAgent?: string;
     ConnectionId?: string;
-    CurrentPage?: string;
-    CurrentAction?: string;
     Status?: UserStatus;
-    PageHistory?: PageVisit[];
+    LoginHistoryList?: LoginHistory[];
 }
