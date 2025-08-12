@@ -30,6 +30,9 @@ export class FormEditorV2Widget extends Widget<any> {
     private async init(): Promise<void> {
         console.log('🚀 FormEditorV2Widget initializing');
         
+        // Report page visit to SignalR
+        this.reportPageVisit("Form Editor V2", "Form düzenleme sayfasını açtı");
+        
         // Check if user is admin FIRST
         this.checkUserPermissions();
         
@@ -51,6 +54,26 @@ export class FormEditorV2Widget extends Widget<any> {
         
         console.log('🚀 FormEditorV2Widget initialization complete');
         console.log('🚀 Final isAdmin status:', this.isAdmin);
+    }
+    
+    private reportPageVisit(pageName: string, action?: string): void {
+        console.log(`📍 Reporting page visit: ${pageName} - ${action}`);
+        
+        // Try using the global function first
+        if (typeof (window as any).updatePageLocation === 'function') {
+            (window as any).updatePageLocation(pageName, action);
+            console.log('✅ Page visit reported via global function');
+        } else {
+            // Check if SignalR connection exists
+            const connection = (window as any).signalRConnection;
+            if (connection && connection.state === 'Connected') {
+                connection.invoke("UpdatePageLocation", pageName, action)
+                    .then(() => console.log('✅ Page visit reported via direct connection'))
+                    .catch((err: any) => console.error("❌ Error reporting page visit:", err));
+            } else {
+                console.warn('⚠️ No SignalR connection available for page tracking');
+            }
+        }
     }
     
     private checkUserPermissions(): void {
@@ -687,6 +710,9 @@ export class FormEditorV2Widget extends Widget<any> {
                     placeholder.replaceWith($draggedForm);
                     $draggedForm.removeClass('dragging-form');
                     
+                    // Report drag action
+                    self.reportPageVisit("Form Editor V2", "Form sıralamasını değiştirdi");
+                    
                     // Cleanup
                     placeholder = null;
                     draggedElement = null;
@@ -777,6 +803,9 @@ export class FormEditorV2Widget extends Widget<any> {
 
     private async saveSettings(): Promise<void> {
         try {
+            // Report save action
+            this.reportPageVisit("Form Editor V2", "Form ayarlarını kaydetti");
+            
             const settings = {
                 layoutSettings: this.layoutSettings,
                 fieldSettings: Array.from(this.fieldSettings.entries()).map(([id, fieldSetting]) => ({
@@ -862,6 +891,9 @@ export class FormEditorV2Widget extends Widget<any> {
     }
 
     private resetSettings(): void {
+        // Report reset action
+        this.reportPageVisit("Form Editor V2", "Form ayarlarını sıfırladı");
+        
         this.fieldSettings.clear();
         this.layoutSettings = { widthMode: 'normal', formOrder: [], showWidthControls: true };
         this.renderForms();

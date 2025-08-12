@@ -43,6 +43,15 @@
 .activity-info {
     flex-grow: 1;
     min-width: 0;
+    cursor: pointer;
+}
+
+.activity-info:hover {
+    background-color: #f0f8ff;
+    border-radius: 4px;
+    padding: 5px;
+    margin: -5px;
+    transition: all 0.2s;
 }
 
 .user-name {
@@ -276,3 +285,64 @@
 .user-activity-widget tr {
     animation: fadeIn 0.3s ease-out;
 }
+
+/* Activity Timeline Styles */
+.activity-timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.activity-timeline:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 30px;
+    height: 100%;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 70px;
+    margin-bottom: 20px;
+}
+
+.timeline-badge {
+    position: absolute;
+    left: 0;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    z-index: 1;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.timeline-content h6 {
+    margin: 0 0 5px 0;
+    font-weight: 600;
+    color: #333;
+}
+
+.timeline-content p {
+    margin: 0;
+    font-size: 13px;
+    color: #6c757d;
+}
+
+/* User status colors */
+.status-online { color: #28a745; }
+.status-away { color: #ffc107; }
+.status-busy { color: #dc3545; }
+.status-offline { color: #6c757d; }

@@ -72,8 +72,14 @@ public partial class AccountPage : Controller
                     var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                     var userId = !string.IsNullOrEmpty(userIdClaim) ? Convert.ToInt32(userIdClaim) : 0;
                     var displayName = principal.FindFirst("DisplayName")?.Value ?? username;
+                    var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+                    var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
                     
-                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Login successful - UserId: {userId}, Username: {username}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Login successful - UserId: {userId}, Username: {username}, DisplayName: {displayName}");
+                    
+                    // UserActivityTracker'a login kaydını ekle
+                    UserActivityTracker.RecordLogin(userId, username, displayName, ipAddress, userAgent, $"login-{userId}-{DateTime.Now.Ticks}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ✅ UserActivityTracker.RecordLogin called for user: {username}");
                 }
                 catch (Exception ex)
                 {
