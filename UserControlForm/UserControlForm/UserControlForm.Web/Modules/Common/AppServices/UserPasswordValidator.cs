@@ -46,11 +46,21 @@ public class UserPasswordValidator(ITwoLevelCache cache, ISqlConnections sqlConn
 
         bool validatePassword()
         {
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] === VALIDATING PASSWORD FOR {user.Username} ===");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Password: {password?.Substring(0, Math.Min(3, password?.Length ?? 0))}... (length: {password?.Length})");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Salt: {user.PasswordSalt}");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Salt Length: {user.PasswordSalt?.Length}");
+            
             var calculatedHash = UserHelper.CalculateHash(password, user.PasswordSalt);
+            
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Calculated hash: {calculatedHash}");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Calculated hash length: {calculatedHash?.Length}");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Expected hash: {user.PasswordHash}");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Expected hash length: {user.PasswordHash?.Length}");
+            
             var isValid = calculatedHash.Equals(user.PasswordHash, StringComparison.OrdinalIgnoreCase);
-            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Password validation for {user.Username}: {isValid}");
-            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Calculated hash: {calculatedHash?.Substring(0, Math.Min(10, calculatedHash?.Length ?? 0))}...");
-            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Expected hash: {user.PasswordHash?.Substring(0, Math.Min(10, user.PasswordHash?.Length ?? 0))}...");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Result: {(isValid ? "✓ VALID" : "✗ INVALID")}");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] ================================");
             return isValid;
         }
 
