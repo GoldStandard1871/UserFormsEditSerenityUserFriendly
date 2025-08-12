@@ -599,8 +599,8 @@ ViewData["PageId"] = "Dashboard";
             salesByTypeChart.update();
         });
         
-        // Initialize SignalR for admin users
-        @if (User.IsInRole("Administrators") || User.Identity.Name == "admin")
+        // Initialize SignalR for all authenticated users
+        @if (User.Identity.IsAuthenticated)
         {
             <text>initializeSignalR();</text>
         }

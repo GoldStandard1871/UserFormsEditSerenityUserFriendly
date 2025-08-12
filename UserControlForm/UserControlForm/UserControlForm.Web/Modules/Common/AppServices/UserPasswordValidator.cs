@@ -30,10 +30,12 @@ public class UserPasswordValidator(ITwoLevelCache cache, ISqlConnections sqlConn
     private PasswordValidationResult ValidateExistingUser(ref string username, string password, UserDefinition user)
     {
         username = user.Username;
+        System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Validating user: {username}, IsActive: {user.IsActive}, Source: {user.Source}");
 
         if (user.IsActive != 1)
         {
             Log?.LogError("Inactive user login attempt: {username}", username);
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] User is inactive: {username}");
             return PasswordValidationResult.InactiveUser;
         }
 
@@ -42,8 +44,15 @@ public class UserPasswordValidator(ITwoLevelCache cache, ISqlConnections sqlConn
         if (!throttler.Check())
             return PasswordValidationResult.Throttle;
 
-        bool validatePassword() => UserHelper.CalculateHash(password, user.PasswordSalt)
-            .Equals(user.PasswordHash, StringComparison.OrdinalIgnoreCase);
+        bool validatePassword()
+        {
+            var calculatedHash = UserHelper.CalculateHash(password, user.PasswordSalt);
+            var isValid = calculatedHash.Equals(user.PasswordHash, StringComparison.OrdinalIgnoreCase);
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Password validation for {user.Username}: {isValid}");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Calculated hash: {calculatedHash?.Substring(0, Math.Min(10, calculatedHash?.Length ?? 0))}...");
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Expected hash: {user.PasswordHash?.Substring(0, Math.Min(10, user.PasswordHash?.Length ?? 0))}...");
+            return isValid;
+        }
 
         if (user.Source == "site" || user.Source == "sign" || directoryService == null)
         {
@@ -53,6 +62,7 @@ public class UserPasswordValidator(ITwoLevelCache cache, ISqlConnections sqlConn
                 return PasswordValidationResult.Valid;
             }
 
+            System.Diagnostics.Debug.WriteLine($"[UserPasswordValidator] Password validation failed for {user.Username}");
             return PasswordValidationResult.Invalid;
         }
 

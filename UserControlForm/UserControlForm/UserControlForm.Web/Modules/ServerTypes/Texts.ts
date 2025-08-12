@@ -95,6 +95,16 @@ namespace texts {
                 export const IsActive: string;
             }
 
+            namespace GlobalFormSettings {
+                export const Id: string;
+                export const InsertDate: string;
+                export const InsertUserId: string;
+                export const SettingKey: string;
+                export const SettingValue: string;
+                export const UpdateDate: string;
+                export const UpdateUserId: string;
+            }
+
             namespace UserFormSettings {
                 export const Id: string;
                 export const InsertDate: string;
@@ -214,6 +224,7 @@ const Texts: typeof texts = proxyTexts({}, '', {
         },
         FormEditor: {
             FormEditorV2: {},
+            GlobalFormSettings: {},
             UserFormSettings: {}
         },
         Integration: {

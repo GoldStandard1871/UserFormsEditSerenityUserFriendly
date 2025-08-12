@@ -58,7 +58,9 @@ public partial class AccountPage : Controller
                 throw new ArgumentNullException(nameof(userClaimCreator));
 
             var username = request.Username;
+            System.Diagnostics.Debug.WriteLine($"[AccountPage] Login attempt - Username: {username}");
             var result = passwordValidator.Validate(ref username, request.Password);
+            System.Diagnostics.Debug.WriteLine($"[AccountPage] Validation result: {result}");
             if (result == PasswordValidationResult.Valid)
             {
                 var principal = userClaimCreator.CreatePrincipal(username, authType: "Password");
@@ -71,19 +73,12 @@ public partial class AccountPage : Controller
                     var userId = !string.IsNullOrEmpty(userIdClaim) ? Convert.ToInt32(userIdClaim) : 0;
                     var displayName = principal.FindFirst("DisplayName")?.Value ?? username;
                     
-                    // Eğer userId bulunamazsa, username'e göre bul
-                    if (userId == 0)
-                    {
-                        // Test için sabit ID kullan
-                        if (username == "test") userId = 3;
-                        else if (username == "admin") userId = 1;
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Login - UserId: {userId}, Username: {username}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Login successful - UserId: {userId}, Username: {username}");
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[AccountPage] Error tracking login: {ex.Message}");
+                    // Exception'ı yutuyoruz, login işlemini etkilemesin
                 }
                 
                 return new ServiceResponse();

@@ -4,22 +4,22 @@ using Serenity.Data.Mapping;
 using System;
 using System.ComponentModel;
 
-namespace UserControlForm.UserControlForm
+namespace UserControlForm.FormEditor
 {
-    [ConnectionKey("Default"), Module("UserControlForm"), TableName("UserFormSettings")]
-    [DisplayName("User Form Settings"), InstanceName("User Form Settings")]
-    [ReadPermission("Administration:General")]
+    [ConnectionKey("Default"), Module("FormEditor"), TableName("GlobalFormSettings")]
+    [DisplayName("Global Form Settings"), InstanceName("Global Form Settings")]
+    [ReadPermission("*")]
     [ModifyPermission("Administration:General")]
-    public sealed class UserFormSettingsRow : Row<UserFormSettingsRow.RowFields>, IIdRow
+    public sealed class GlobalFormSettingsRow : Row<GlobalFormSettingsRow.RowFields>, IIdRow
     {
         [DisplayName("Id"), Identity, IdProperty]
         public int? Id { get => fields.Id[this]; set => fields.Id[this] = value; }
 
-        [DisplayName("User Id"), NotNull]
-        public int? UserId { get => fields.UserId[this]; set => fields.UserId[this] = value; }
+        [DisplayName("Setting Key"), Size(100), NotNull, QuickSearch]
+        public string SettingKey { get => fields.SettingKey[this]; set => fields.SettingKey[this] = value; }
 
-        [DisplayName("Settings"), NotNull]
-        public string Settings { get => fields.Settings[this]; set => fields.Settings[this] = value; }
+        [DisplayName("Setting Value"), NotNull]
+        public string SettingValue { get => fields.SettingValue[this]; set => fields.SettingValue[this] = value; }
 
         [DisplayName("Insert Date"), NotNull]
         public DateTime? InsertDate { get => fields.InsertDate[this]; set => fields.InsertDate[this] = value; }
@@ -36,8 +36,8 @@ namespace UserControlForm.UserControlForm
         public class RowFields : RowFieldsBase
         {
             public Int32Field Id;
-            public Int32Field UserId;
-            public StringField Settings;
+            public StringField SettingKey;
+            public StringField SettingValue;
             public DateTimeField InsertDate;
             public Int32Field InsertUserId;
             public DateTimeField UpdateDate;

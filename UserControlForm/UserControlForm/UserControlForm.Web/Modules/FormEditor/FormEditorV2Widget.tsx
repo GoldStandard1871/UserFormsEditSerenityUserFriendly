@@ -16,7 +16,9 @@ interface ExtendedLayoutSettings extends FormLayoutSettings {
 export class FormEditorV2Widget extends Widget<any> {
     private layoutSettings: ExtendedLayoutSettings = { widthMode: 'normal', formOrder: [], showWidthControls: true };
     private fieldSettings: Map<string, ExtendedFieldSettings> = new Map();
+    private globalRequiredFields: string[] = [];
     private container: JQuery;
+    private isAdmin: boolean = false;
 
     constructor(container: JQuery) {
         super(container);
@@ -25,8 +27,11 @@ export class FormEditorV2Widget extends Widget<any> {
         this.init();
     }
 
-    private init(): void {
+    private async init(): Promise<void> {
         console.log('🚀 FormEditorV2Widget initializing');
+        
+        // Check if user is admin FIRST
+        this.checkUserPermissions();
         
         // Clear container
         this.container.empty();
@@ -35,16 +40,36 @@ export class FormEditorV2Widget extends Widget<any> {
         this.createToolbar();
         this.createFormsContainer();
         
-        // Render forms
+        // Load settings BEFORE rendering forms
+        await this.loadSettings();
+        
+        // Now render forms with loaded settings and correct isAdmin value
         this.renderForms();
         
         // Bind events
         this.bindEvents();
         
-        // Load settings after initial render
-        this.loadSettings();
-        
         console.log('🚀 FormEditorV2Widget initialization complete');
+        console.log('🚀 Final isAdmin status:', this.isAdmin);
+    }
+    
+    private checkUserPermissions(): void {
+        const userData = (window as any).Q?.UserData;
+        console.log('👤 Full UserData:', userData);
+        this.isAdmin = userData?.IsAdmin === true;
+        console.log('👤 User is admin:', this.isAdmin);
+        console.log('👤 Username:', userData?.Username);
+        
+        // Double check with another method
+        const username = userData?.Username;
+        if (username) {
+            const isAdminByName = username.toLowerCase() === 'admin';
+            console.log('👤 Admin check by username:', isAdminByName);
+            if (isAdminByName && !this.isAdmin) {
+                console.warn('⚠️ Admin detection mismatch! Setting isAdmin to true');
+                this.isAdmin = true;
+            }
+        }
     }
 
     private createToolbar(): void {
@@ -184,16 +209,30 @@ export class FormEditorV2Widget extends Widget<any> {
                         break;
                 }
                 
+                // Check both local settings and global required fields
+                const isLocalRequired = fieldSettings?.required || false;
+                const isGlobalRequired = this.globalRequiredFields.includes(field.id);
+                const isRequired = isLocalRequired || isGlobalRequired;
+                
+                console.log(`🔍 Field ${field.id}: isAdmin=${this.isAdmin}, isLocalRequired=${isLocalRequired}, isGlobalRequired=${isGlobalRequired}, final=${isRequired}`);
+                
                 const fieldHtml = $(`
                     <div class="field-item" data-field-id="${field.id}" data-width="${savedWidth}" style="${widthStyle} ${flexStyle}">
                         <div class="field-content">
                             <label>
                                 ${field.label}
+                                ${isRequired ? '<span class="required-star">*</span>' : ''}
                             </label>
                             ${this.createInput(field.type)}
                             <div class="field-controls" ${this.layoutSettings.showWidthControls === false ? 'style="display: none;"' : ''}>
                                 <div class="field-controls-row">
                                     <i class="fa fa-eye-slash hide-field-btn" title="Alanı Gizle"></i>
+                                    ${this.isAdmin ? `
+                                        <label class="required-checkbox-label">
+                                            <input type="checkbox" class="required-checkbox" data-field-id="${field.id}" ${isRequired ? 'checked' : ''} />
+                                            <span>Zorunlu</span>
+                                        </label>
+                                    ` : ''}
                                     <select class="width-select" data-field-id="${field.id}">
                                         <option value="25" ${savedWidth === 25 ? 'selected' : ''}>25%</option>
                                         <option value="50" ${savedWidth === 50 ? 'selected' : ''}>50%</option>
@@ -208,6 +247,15 @@ export class FormEditorV2Widget extends Widget<any> {
                 
                 fieldsArea.append(fieldHtml);
                 console.log(`🎨 Field ${field.id} appended to fields area. Field width style:`, fieldHtml.attr('style'));
+                
+                // Check if required checkbox was added for admin
+                if (this.isAdmin) {
+                    const checkboxFound = fieldHtml.find('.required-checkbox').length > 0;
+                    console.log(`🔍 Field ${field.id} - Required checkbox found: ${checkboxFound}`);
+                    if (!checkboxFound) {
+                        console.error(`❌ Required checkbox NOT rendered for field ${field.id}!`);
+                    }
+                }
                 
                 // Verify hide button is rendered
                 const hideBtn = fieldHtml.find('.hide-field-btn');
@@ -272,6 +320,9 @@ export class FormEditorV2Widget extends Widget<any> {
                 }
             });
         });
+        
+        // Update hidden fields count after rendering
+        this.updateHiddenFieldsList();
     }
 
     private createInput(type: string): string {
@@ -384,6 +435,43 @@ export class FormEditorV2Widget extends Widget<any> {
             console.log(`Width changed for field ${fieldId}: ${newWidth}% - CSS: ${widthCalc}`);
         });
         
+        // Required field checkbox (only for admin)
+        if (this.isAdmin) {
+            this.container.on('change', '.required-checkbox', function() {
+                const $checkbox = $(this);
+                const fieldId = $checkbox.data('field-id');
+                const isRequired = $checkbox.is(':checked');
+                
+                // Update local setting
+                self.updateFieldSetting(fieldId, { required: isRequired });
+                
+                // Update global required fields list
+                if (isRequired) {
+                    if (!self.globalRequiredFields.includes(fieldId)) {
+                        self.globalRequiredFields.push(fieldId);
+                    }
+                } else {
+                    const index = self.globalRequiredFields.indexOf(fieldId);
+                    if (index > -1) {
+                        self.globalRequiredFields.splice(index, 1);
+                    }
+                }
+                
+                // Update the star immediately
+                const $label = $checkbox.closest('.field-item').find('label').first();
+                if (isRequired) {
+                    if (!$label.find('.required-star').length) {
+                        $label.append('<span class="required-star">*</span>');
+                    }
+                } else {
+                    $label.find('.required-star').remove();
+                }
+                
+                console.log(`Required changed for field ${fieldId}: ${isRequired}`);
+                console.log(`Updated global required fields:`, self.globalRequiredFields);
+            });
+        }
+        
         // Hide field button
         this.container.on('click', '.hide-field-btn', function(e) {
             console.log('👁️ Hide button clicked');
@@ -397,6 +485,7 @@ export class FormEditorV2Widget extends Widget<any> {
                 $field.fadeOut(200, function() {
                     self.updateFieldSetting(fieldId, { hidden: true });
                     console.log(`👁️ Field ${fieldId} marked as hidden, re-rendering forms`);
+                    self.updateHiddenFieldsList(); // Update hidden count immediately
                     self.renderForms(); // Re-render to update hidden count
                 });
             }
@@ -413,6 +502,7 @@ export class FormEditorV2Widget extends Widget<any> {
                 }
             });
             
+            self.updateHiddenFieldsList(); // Update count immediately
             self.renderForms();
         });
         
@@ -432,8 +522,8 @@ export class FormEditorV2Widget extends Widget<any> {
             e.stopPropagation();
             const fieldId = $(this).data('field-id');
             self.updateFieldSetting(fieldId, { hidden: false });
+            self.updateHiddenFieldsList(); // Update count immediately
             self.renderForms();
-            self.updateHiddenFieldsList();
         });
         
         // Close dropdown when clicking outside
@@ -675,30 +765,29 @@ export class FormEditorV2Widget extends Widget<any> {
         });
     }
 
-    private updateFormSetting(formId: string, settings: Partial<ExtendedFieldSettings>): void {
+    private updateFormSetting(formId: string, newSettings: Partial<ExtendedFieldSettings>): void {
         const current = this.fieldSettings.get(formId) || {};
-        this.fieldSettings.set(formId, { ...current, ...settings });
+        this.fieldSettings.set(formId, { ...current, ...newSettings });
     }
 
-    private updateFieldSetting(fieldId: string, settings: Partial<ExtendedFieldSettings>): void {
+    private updateFieldSetting(fieldId: string, newSettings: Partial<ExtendedFieldSettings>): void {
         const current = this.fieldSettings.get(fieldId) || {};
-        this.fieldSettings.set(fieldId, { ...current, ...settings });
+        this.fieldSettings.set(fieldId, { ...current, ...newSettings });
     }
 
     private async saveSettings(): Promise<void> {
         try {
             const settings = {
                 layoutSettings: this.layoutSettings,
-                fieldSettings: Array.from(this.fieldSettings.entries()).map(([id, settings]) => ({
+                fieldSettings: Array.from(this.fieldSettings.entries()).map(([id, fieldSetting]) => ({
                     fieldId: id,
-                    ...settings
+                    ...fieldSetting
                 }))
             };
 
             console.log('Saving settings:', settings);
 
             await FormEditorV2Service.SaveUserSettings({
-                UserId: this.getUserId(),
                 Settings: JSON.stringify(settings)
             } as SaveUserSettingsRequest);
 
@@ -711,9 +800,24 @@ export class FormEditorV2Widget extends Widget<any> {
 
     private async loadSettings(): Promise<void> {
         try {
-            const response = await FormEditorV2Service.GetUserSettings({
-                UserId: this.getUserId()
-            } as GetUserSettingsRequest);
+            const response = await FormEditorV2Service.GetUserSettings({} as GetUserSettingsRequest);
+            
+            // Check IsAdmin from server response
+            console.log('📡 Server response - IsAdmin:', response.IsAdmin);
+            console.log('📡 Server response - Username:', response.Username);
+            console.log('📡 Server response - UserId:', response.UserId);
+            
+            // Update isAdmin from server response if available
+            if (typeof response.IsAdmin === 'boolean') {
+                this.isAdmin = response.IsAdmin;
+                console.log('✅ Updated isAdmin from server:', this.isAdmin);
+            }
+            
+            // Get global required fields
+            if (response.RequiredFields && Array.isArray(response.RequiredFields)) {
+                this.globalRequiredFields = response.RequiredFields;
+                console.log('✅ Global required fields:', this.globalRequiredFields);
+            }
 
             if (response.Settings) {
                 const settings = JSON.parse(response.Settings);
@@ -735,7 +839,7 @@ export class FormEditorV2Widget extends Widget<any> {
                 }
                 
                 // Re-render with loaded settings
-                this.renderForms();
+                // this.renderForms(); // Already rendered in init()
                 
                 // Apply layout mode
                 this.container.find('.width-mode-select').val(this.layoutSettings.widthMode);
@@ -762,9 +866,5 @@ export class FormEditorV2Widget extends Widget<any> {
         this.layoutSettings = { widthMode: 'normal', formOrder: [], showWidthControls: true };
         this.renderForms();
         notifySuccess("Ayarlar sıfırlandı");
-    }
-
-    private getUserId(): number {
-        return parseInt((window as any).Q?.Authorization?.userId || '0');
     }
 }
