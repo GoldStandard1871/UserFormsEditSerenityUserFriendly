@@ -36,7 +36,8 @@ namespace UserControlForm.Common.UserActivity
                     
                     System.Diagnostics.Debug.WriteLine($"[UserActivityHub] ✅ User Connected - UserId: {userId}, Username: {username}, DisplayName: {displayName}, ConnectionId: {Context.ConnectionId}");
                     
-                    UserActivityTracker.RecordLogin(userId, username, displayName, ipAddress, userAgent, Context.ConnectionId);
+                    // SignalR bağlantısını güncelle, ama yeni login kaydı ekleme (zaten online ise)
+                    UserActivityTracker.UpdateConnection(userId, username, displayName, ipAddress, userAgent, Context.ConnectionId);
                     
                     // Log current activities
                     var activities = UserActivityTracker.GetAllActivities();
@@ -72,9 +73,12 @@ namespace UserControlForm.Common.UserActivity
                 if (user?.Identity?.IsAuthenticated == true)
                 {
                     var userId = Convert.ToInt32(userAccessor.User?.GetIdentifier());
-                    UserActivityTracker.RecordLogout(userId);
                     
-                    System.Diagnostics.Debug.WriteLine($"[UserActivityHub] OnDisconnectedAsync - UserId: {userId} disconnected");
+                    // SignalR disconnect'te logout kaydı EKLEME, sadece offline yap
+                    // Gerçek logout AccountPage.Signout'tan gelir
+                    UserActivityTracker.SetOfflineStatus(userId);
+                    
+                    System.Diagnostics.Debug.WriteLine($"[UserActivityHub] OnDisconnectedAsync - UserId: {userId} disconnected (status set to offline, no logout record)");
                     
                     // Notify all clients about the offline user
                     await Clients.All.SendAsync("UserStatusChanged", userId, false);
