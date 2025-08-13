@@ -1,5 +1,4 @@
-﻿import { LoginHistory } from "./UserActivity.LoginHistory";
-import { UserStatus } from "./UserActivity.UserStatus";
+﻿import { UserStatus } from "./UserActivity.UserStatus";
 
 export interface UserActivityInfo {
     UserId?: number;
@@ -13,5 +12,4 @@ export interface UserActivityInfo {
     UserAgent?: string;
     ConnectionId?: string;
     Status?: UserStatus;
-    LoginHistoryList?: LoginHistory[];
 }
