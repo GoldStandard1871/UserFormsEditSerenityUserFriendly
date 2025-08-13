@@ -45,7 +45,7 @@ namespace UserControlForm.Common.UserActivity
                     System.Diagnostics.Debug.WriteLine($"[UserActivityHub] Total active users: {activities.Count}");
                     foreach (var act in activities)
                     {
-                        System.Diagnostics.Debug.WriteLine($"  - {act.Username}: Online={act.IsOnline}, LoginHistory={act.LoginHistoryList?.Count ?? 0} items");
+                        System.Diagnostics.Debug.WriteLine($"  - {act.Username}: Online={act.IsOnline}");
                     }
                     
                     // Notify all clients about the new online user
