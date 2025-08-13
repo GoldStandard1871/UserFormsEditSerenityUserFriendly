@@ -266,7 +266,9 @@ ViewData["PageId"] = "Dashboard";
     </section>
 </div>
 
-<!-- Kullanıcı Aktiviteleri - Tüm kullanıcılar görebilir -->
+<!-- Kullanıcı Aktiviteleri - Sadece Admin görebilir -->
+@if (User.IsInRole("Administrators") || User.Identity.Name == "admin")
+{
 <div class="row">
     <section class="col-lg-6">
         <div class="card s-dashboard-card">
@@ -287,6 +289,7 @@ ViewData["PageId"] = "Dashboard";
         </div>
     </section>
 </div>
+}
 
 <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
 <script>
@@ -307,11 +310,6 @@ ViewData["PageId"] = "Dashboard";
             loadUserActivities();
         });
         
-        // Listen for page changes
-        connection.on("UserPageChanged", function(userId, pageName, action) {
-            console.log("User page changed:", userId, pageName, action);
-            loadUserActivities();
-        });
         
         connection.start()
             .then(function() {
@@ -321,10 +319,19 @@ ViewData["PageId"] = "Dashboard";
                 
                 loadUserActivities();
                 
-                // Send current page info after a small delay to ensure connection is stable
-                setTimeout(function() {
-                    updatePageLocation("Dashboard", "Dashboard'ı görüntülüyor");
-                }, 500);
+                // Login olduğunda aktivite kaydı oluştur
+                var isNewLogin = sessionStorage.getItem('newLogin') === 'true';
+                if (isNewLogin) {
+                    console.log("New login detected, sending login notification");
+                    connection.invoke("SendHeartbeat")
+                        .then(function() {
+                            console.log("Login activity recorded");
+                            sessionStorage.removeItem('newLogin');
+                        })
+                        .catch(function(err) {
+                            console.error("Failed to record login:", err);
+                        });
+                }
                 
                 // Send heartbeat every 30 seconds
                 setInterval(function() {
@@ -341,21 +348,8 @@ ViewData["PageId"] = "Dashboard";
             });
     }
     
-    // Update page location - make it global
-    window.updatePageLocation = function(pageName, action) {
-        var connection = window.signalRConnection;
-        if (connection && connection.state === signalR.HubConnectionState.Connected) {
-            connection.invoke("UpdatePageLocation", pageName, action)
-                .then(function() {
-                    console.log("Page location updated:", pageName, action);
-                })
-                .catch(function(err) {
-                    console.error("Error updating page location:", err);
-                });
-        }
-    }
-    
-    // Show user activity history modal
+    // Aktivite geçmişi kaldırıldı
+    /*
     function showUserHistory(userId, username) {
         // Create modal HTML
         var modalHtml = `
@@ -398,7 +392,18 @@ ViewData["PageId"] = "Dashboard";
                 if (response.Entities && response.Entities.length > 0) {
                     response.Entities.forEach(function(item) {
                         var timestamp = new Date(item.Timestamp);
-                        var timeStr = formatActivityTime(timestamp);
+                        // Ay/Gün/Yıl Saat:Dakika:Saniye formatında göster
+                        var dateStr = timestamp.toLocaleDateString('tr-TR', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        });
+                        var timeStr = timestamp.toLocaleTimeString('tr-TR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                        var fullDateStr = dateStr + ' ' + timeStr;
                         
                         historyHtml += `
                             <div class="timeline-item">
@@ -408,8 +413,8 @@ ViewData["PageId"] = "Dashboard";
                                 <div class="timeline-content">
                                     <h6>${item.ActivityDetail}</h6>
                                     <p class="text-muted">
-                                        ${timeStr}
-                                        ${item.PageName ? ' - ' + item.PageName : ''}
+                                        <i class="fa fa-calendar"></i> ${fullDateStr}
+                                        ${item.PageName ? ' <br><i class="fa fa-globe"></i> IP: ' + item.PageName : ''}
                                     </p>
                                 </div>
                             </div>
@@ -427,25 +432,7 @@ ViewData["PageId"] = "Dashboard";
             }
         });
     }
-    
-    // Format activity time helper
-    function formatActivityTime(date) {
-        var now = new Date();
-        var diffMs = now - date;
-        var diffMins = Math.floor(diffMs / 60000);
-        var diffHours = Math.floor(diffMins / 60);
-        var diffDays = Math.floor(diffHours / 24);
-        
-        if (diffMins < 1) return 'Şimdi';
-        if (diffMins < 60) return diffMins + ' dakika önce';
-        if (diffHours < 24) {
-            return 'Bugün ' + date.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
-        }
-        if (diffDays === 1) {
-            return 'Dün ' + date.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
-        }
-        return date.toLocaleDateString('tr-TR') + ' ' + date.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
-    }
+    */
     
     // Load user activities
     function loadUserActivities() {
@@ -472,23 +459,35 @@ ViewData["PageId"] = "Dashboard";
                         var now = new Date();
                         var diffMs = now - activityDate;
                         var diffMins = Math.floor(diffMs / 60000);
-                        var timeStr = '';
                         
-                        if (diffMins < 1) timeStr = 'Şimdi';
-                        else if (diffMins < 60) timeStr = diffMins + ' dakika önce';
-                        else if (diffMins < 1440) timeStr = Math.floor(diffMins / 60) + ' saat önce';
-                        else timeStr = activityDate.toLocaleDateString('tr-TR');
+                        // Tarih ve saat formatı
+                        var dateStr = activityDate.toLocaleDateString('tr-TR', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        });
+                        var timeStr = activityDate.toLocaleTimeString('tr-TR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                        
+                        var displayTime = '';
+                        if (diffMins < 1) {
+                            displayTime = 'Şimdi aktif';
+                        } else if (diffMins < 60) {
+                            displayTime = diffMins + ' dakika önce';
+                        } else {
+                            displayTime = dateStr + ' ' + timeStr;
+                        }
                         
                         html += '<div class="activity-item ' + statusClass + '">';
                         html += '  <div class="activity-status">' + statusIcon + '</div>';
-                        html += '  <div class="activity-info" data-userid="' + activity.UserId + '" style="cursor: pointer;">';
+                        html += '  <div class="activity-info">';
                         html += '    <div class="user-name">' + (activity.DisplayName || activity.Username) + '</div>';
                         html += '    <div class="user-details">';
-                        html += '      <span class="detail-item"><i class="fa fa-clock-o"></i> ' + timeStr + ' (' + activityDate.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'}) + ')</span>';
-                        html += '      <span class="detail-item"><i class="fa fa-globe"></i> ' + (activity.IpAddress || 'Bilinmiyor') + '</span>';
-                        if (activity.CurrentPage) {
-                            html += '      <span class="detail-item"><i class="fa fa-file-o"></i> ' + activity.CurrentPage + '</span>';
-                        }
+                        html += '      <span class="detail-item"><i class="fa fa-calendar"></i> ' + displayTime + '</span>';
+                        html += '      <span class="detail-item"><i class="fa fa-globe"></i> IP: ' + (activity.IpAddress || 'Bilinmiyor') + '</span>';
                         html += '    </div>';
                         html += '  </div>';
                         html += '  <div class="activity-type">';
@@ -506,12 +505,7 @@ ViewData["PageId"] = "Dashboard";
                 $('#user-activity-widget').html(html);
                 $('#online-count').text(onlineCount + ' Online');
                 
-                // Add click event to user items
-                $('.activity-info').on('click', function() {
-                    var userId = $(this).data('userid');
-                    var username = $(this).find('.user-name').text();
-                    showUserHistory(userId, username);
-                });
+                // Click eventi kaldırıldı
             },
             error: function(xhr, status, error) {
                 console.error('Error loading activities:', error);

@@ -58,32 +58,60 @@ public partial class AccountPage : Controller
                 throw new ArgumentNullException(nameof(userClaimCreator));
 
             var username = request.Username;
-            System.Diagnostics.Debug.WriteLine($"[AccountPage] Login attempt - Username: {username}");
+            System.Diagnostics.Debug.WriteLine($"[AccountPage] Login attempt - Username: {username}, Password length: {request.Password?.Length ?? 0}");
             var result = passwordValidator.Validate(ref username, request.Password);
             System.Diagnostics.Debug.WriteLine($"[AccountPage] Validation result: {result}");
             if (result == PasswordValidationResult.Valid)
             {
                 var principal = userClaimCreator.CreatePrincipal(username, authType: "Password");
-                HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal).GetAwaiter().GetResult();
+                
+                // Cookie options ile manuel sign in deneyelim
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
+                };
+                
+                HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties).GetAwaiter().GetResult();
+                
+                // Cookie oluşturuldu mu kontrol et
+                System.Console.WriteLine($"[AccountPage] SignInAsync completed for {username}");
+                System.Diagnostics.Debug.WriteLine($"[AccountPage] Cookie should be created for {username}");
                 
                 // Login olduğunda kullanıcı aktivitesini kaydet
                 try
                 {
+                    // Önce log at, RecordLogin çağrılıyor mu görelim
+                    System.Console.WriteLine($"[AccountPage-CONSOLE] Login successful for: {username}");
+                    System.Diagnostics.Trace.WriteLine($"[AccountPage-TRACE] Login successful for: {username}");
                     var userIdClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                     var userId = !string.IsNullOrEmpty(userIdClaim) ? Convert.ToInt32(userIdClaim) : 0;
                     var displayName = principal.FindFirst("DisplayName")?.Value ?? username;
                     var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
                     var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
                     
-                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Login successful - UserId: {userId}, Username: {username}, DisplayName: {displayName}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ========================================");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] LOGIN SUCCESS for {username}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] UserId: {userId}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] DisplayName: {displayName}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] IP: {ipAddress}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ========================================");
                     
                     // UserActivityTracker'a login kaydını ekle
-                    UserActivityTracker.RecordLogin(userId, username, displayName, ipAddress, userAgent, $"login-{userId}-{DateTime.Now.Ticks}");
-                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ✅ UserActivityTracker.RecordLogin called for user: {username}");
+                    if (userId > 0)
+                    {
+                        UserActivityTracker.RecordLogin(userId, username, displayName, ipAddress, userAgent, $"login-{userId}-{DateTime.Now.Ticks}");
+                        System.Diagnostics.Debug.WriteLine($"[AccountPage] ✅ UserActivityTracker.RecordLogin called successfully");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AccountPage] ⚠️ WARNING: UserId is 0 or invalid for user {username}");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Error tracking login: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] ❌ ERROR tracking login: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[AccountPage] Stack: {ex.StackTrace}");
                     // Exception'ı yutuyoruz, login işlemini etkilemesin
                 }
                 

@@ -21,18 +21,10 @@ namespace UserControlForm.Common.UserActivity
             public string Location { get; set; }
             public string UserAgent { get; set; }
             public string ConnectionId { get; set; }
-            public string CurrentPage { get; set; }
-            public string CurrentAction { get; set; }
             public UserStatus Status { get; set; }
-            public List<PageVisit> PageHistory { get; set; } = new List<PageVisit>();
+            // Login geçmişi kaldırıldı
         }
         
-        public class PageVisit
-        {
-            public string PageName { get; set; }
-            public string Action { get; set; }
-            public DateTime VisitTime { get; set; }
-        }
         
         public enum UserStatus
         {
@@ -42,85 +34,89 @@ namespace UserControlForm.Common.UserActivity
             Offline
         }
         
+        // Gerçek login işlemi (AccountPage'den çağrılır)
         public static void RecordLogin(int userId, string username, string displayName, string ipAddress, string userAgent, string connectionId)
         {
-            var activity = new UserActivityInfo
-            {
-                UserId = userId,
-                Username = username,
-                DisplayName = displayName,
-                IsOnline = true,
-                LastActivityTime = DateTime.Now,
-                LoginTime = DateTime.Now,
-                IpAddress = ipAddress,
-                UserAgent = userAgent,
-                ConnectionId = connectionId,
-                CurrentPage = "Dashboard",
-                Status = UserStatus.Online,
-                PageHistory = new List<PageVisit>()
-            };
+            System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] RecordLogin called for {username} at {DateTime.Now:HH:mm:ss}");
             
-            // İlk sayfa olarak Dashboard'ı ekle
-            activity.PageHistory.Add(new PageVisit
-            {
-                PageName = "Dashboard",
-                Action = "Sisteme giriş yaptı",
-                VisitTime = DateTime.Now
-            });
-            
-            _userActivities.AddOrUpdate(userId, activity, (key, existing) => 
-            {
-                // Mevcut kullanıcı varsa, sadece güncelle
-                existing.IsOnline = true;
-                existing.LastActivityTime = DateTime.Now;
-                existing.LoginTime = DateTime.Now;
-                existing.ConnectionId = connectionId;
-                existing.Status = UserStatus.Online;
-                existing.CurrentPage = "Dashboard";
-                
-                // Login'i history'e ekle
-                if (existing.PageHistory == null)
-                    existing.PageHistory = new List<PageVisit>();
+            _userActivities.AddOrUpdate(userId, 
+                // Yeni kullanıcı için
+                key => {
+                    var newActivity = new UserActivityInfo
+                    {
+                        UserId = userId,
+                        Username = username,
+                        DisplayName = displayName,
+                        IsOnline = true,
+                        LastActivityTime = DateTime.Now,
+                        LoginTime = DateTime.Now,
+                        IpAddress = ipAddress,
+                        UserAgent = userAgent,
+                        ConnectionId = connectionId,
+                        Status = UserStatus.Online
+                    };
                     
-                existing.PageHistory.Add(new PageVisit
+                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] New user created with first login record");
+                    return newActivity;
+                },
+                // Mevcut kullanıcı için
+                (key, existing) => 
                 {
-                    PageName = "Dashboard",
-                    Action = "Sisteme giriş yaptı",
-                    VisitTime = DateTime.Now
+                    // Kullanıcı bilgilerini güncelle
+                    existing.IsOnline = true;
+                    existing.LastActivityTime = DateTime.Now;
+                    existing.LoginTime = DateTime.Now;
+                    existing.ConnectionId = connectionId;
+                    existing.Status = UserStatus.Online;
+                    existing.IpAddress = ipAddress;
+                    existing.UserAgent = userAgent;
+                    existing.DisplayName = displayName;
+                    
+                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] User {username} logged in");
+                    return existing;
                 });
-                
-                return existing;
-            });
         }
         
-        public static void UpdateCurrentPage(int userId, string pageName, string action = null)
+        // SignalR connection güncellemesi (login kaydı eklemez)
+        public static void UpdateConnection(int userId, string username, string displayName, string ipAddress, string userAgent, string connectionId)
         {
-            if (_userActivities.TryGetValue(userId, out var activity))
+            System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] UpdateConnection called for {username} (UserId: {userId})");
+            
+            // Kullanıcı zaten varsa ve online ise sadece connection güncelle
+            if (_userActivities.TryGetValue(userId, out var existingActivity))
             {
-                // Önceki sayfa ile aynı değilse history'e ekle
-                if (activity.CurrentPage != pageName)
+                existingActivity.ConnectionId = connectionId;
+                existingActivity.LastActivityTime = DateTime.Now;
+                existingActivity.IsOnline = true;
+                existingActivity.Status = UserStatus.Online;
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Updated existing user connection: {username} is now ONLINE");
+            }
+            else
+            {
+                // Kullanıcı hiç yoksa, sadece temel bilgileri oluştur
+                // Login kaydı EKLEME (çünkü bu SignalR bağlantısı, gerçek login değil)
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Creating basic activity record for {username} (no login history)");
+                var newActivity = new UserActivityInfo
                 {
-                    activity.PageHistory.Add(new PageVisit
-                    {
-                        PageName = pageName,
-                        Action = action ?? "Sayfayı görüntüledi",
-                        VisitTime = DateTime.Now
-                    });
-                    
-                    // Son 20 kaydı tut
-                    if (activity.PageHistory.Count > 20)
-                    {
-                        activity.PageHistory.RemoveAt(0);
-                    }
-                }
+                    UserId = userId,
+                    Username = username,
+                    DisplayName = displayName,
+                    IsOnline = true,
+                    LastActivityTime = DateTime.Now,
+                    LoginTime = DateTime.Now,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    ConnectionId = connectionId,
+                    Status = UserStatus.Online
+                };
                 
-                activity.CurrentPage = pageName;
-                activity.CurrentAction = action;
-                activity.LastActivityTime = DateTime.Now;
-                activity.Status = UserStatus.Online;
+                _userActivities.TryAdd(userId, newActivity);
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] User {username} is ONLINE (waiting for real login)");
             }
         }
         
+        
+        // Gerçek logout işlemi (AccountPage.Signout'tan çağrılır)
         public static void RecordLogout(int userId)
         {
             if (_userActivities.TryGetValue(userId, out var activity))
@@ -128,6 +124,29 @@ namespace UserControlForm.Common.UserActivity
                 activity.IsOnline = false;
                 activity.LastActivityTime = DateTime.Now;
                 activity.ConnectionId = null;
+                activity.Status = UserStatus.Offline;
+                
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Logout recorded for UserId: {userId} at {DateTime.Now}");
+            }
+        }
+        
+        // Sadece online durumunu offline yap ve logout zamanını kaydet
+        public static void SetOfflineStatus(int userId)
+        {
+            if (_userActivities.TryGetValue(userId, out var activity))
+            {
+                var wasOnline = activity.IsOnline;
+                activity.IsOnline = false;
+                activity.LastActivityTime = DateTime.Now;
+                activity.ConnectionId = null;
+                activity.Status = UserStatus.Offline;
+                
+                if (wasOnline)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] User {activity.Username} went OFFLINE at {DateTime.Now:HH:mm:ss}");
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[UserActivityTracker] Status set to offline for UserId: {userId}");
             }
         }
         

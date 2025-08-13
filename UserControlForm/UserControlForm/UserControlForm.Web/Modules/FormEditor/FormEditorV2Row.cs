@@ -1,7 +1,9 @@
 using Serenity.ComponentModel;
 using Serenity.Data;
 using Serenity.Data.Mapping;
+using Serenity.Services;
 using System.ComponentModel;
+using System.Collections.Generic;
 
 namespace UserControlForm.FormEditor
 {
@@ -31,5 +33,23 @@ namespace UserControlForm.FormEditor
             public Int32Field DisplayOrder;
             public BooleanField IsActive;
         }
+    }
+
+    public class SaveUserSettingsRequest : ServiceRequest
+    {
+        public string Settings { get; set; }
+    }
+
+    public class GetUserSettingsRequest : ServiceRequest
+    {
+    }
+
+    public class GetUserSettingsResponse : ServiceResponse
+    {
+        public string Settings { get; set; }
+        public int UserId { get; set; }
+        public string Username { get; set; }
+        public bool IsAdmin { get; set; }
+        public List<string> RequiredFields { get; set; }
     }
 }
