@@ -271,21 +271,4 @@ namespace UserControlForm.FormEditor.Endpoints
         }
     }
 
-    public class SaveUserSettingsRequest : ServiceRequest
-    {
-        public string Settings { get; set; }
-    }
-
-    public class GetUserSettingsRequest : ServiceRequest
-    {
-    }
-
-    public class GetUserSettingsResponse : ServiceResponse
-    {
-        public string Settings { get; set; }
-        public int UserId { get; set; }
-        public string Username { get; set; }
-        public bool IsAdmin { get; set; }
-        public List<string> RequiredFields { get; set; }
-    }
 }
