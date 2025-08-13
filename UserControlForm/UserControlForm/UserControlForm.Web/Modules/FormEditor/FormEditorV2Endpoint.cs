@@ -68,7 +68,16 @@ namespace UserControlForm.FormEditor.Endpoints
                                 requiredFields.Add((string)field.fieldId);
                             }
                         }
-                        SaveGlobalRequiredFields(uow, requiredFields);
+                        // Try to save global required fields but don't fail if table doesn't exist
+                        try 
+                        {
+                            SaveGlobalRequiredFields(uow, requiredFields);
+                        }
+                        catch (Exception gex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Warning: Could not save global required fields: {gex.Message}");
+                            // Continue without failing the main save operation
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -207,21 +216,28 @@ namespace UserControlForm.FormEditor.Endpoints
         
         private List<string> GetGlobalRequiredFields(IDbConnection connection)
         {
-            var settingKey = "RequiredFields";
-            var row = connection.TryFirst<GlobalFormSettingsRow>(q => q
-                .Select(GlobalFormSettingsRow.Fields.SettingValue)
-                .Where(GlobalFormSettingsRow.Fields.SettingKey == settingKey));
-            
-            if (row != null && !string.IsNullOrEmpty(row.SettingValue))
+            try
             {
-                try
+                var settingKey = "RequiredFields";
+                var row = connection.TryFirst<GlobalFormSettingsRow>(q => q
+                    .Select(GlobalFormSettingsRow.Fields.SettingValue)
+                    .Where(GlobalFormSettingsRow.Fields.SettingKey == settingKey));
+                
+                if (row != null && !string.IsNullOrEmpty(row.SettingValue))
                 {
-                    return JsonConvert.DeserializeObject<List<string>>(row.SettingValue);
+                    try
+                    {
+                        return JsonConvert.DeserializeObject<List<string>>(row.SettingValue);
+                    }
+                    catch
+                    {
+                        return new List<string>();
+                    }
                 }
-                catch
-                {
-                    return new List<string>();
-                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Warning: Could not get global required fields: {ex.Message}");
             }
             
             return new List<string>();
