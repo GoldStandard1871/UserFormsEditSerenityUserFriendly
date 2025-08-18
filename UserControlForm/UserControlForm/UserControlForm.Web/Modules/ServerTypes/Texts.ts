@@ -6,6 +6,30 @@ namespace texts {
 
         namespace Administration {
 
+            namespace AdminRequiredFields {
+                export const CreatedBy: string;
+                export const CreatedDate: string;
+                export const DialogName: string;
+                export const FieldName: string;
+                export const Id: string;
+                export const IsRequired: string;
+                export const UpdatedBy: string;
+                export const UpdatedDate: string;
+            }
+
+            namespace FormFieldSettings {
+                export const CreatedBy: string;
+                export const CreatedDate: string;
+                export const DialogName: string;
+                export const DisplayOrder: string;
+                export const FieldName: string;
+                export const Id: string;
+                export const IsHidden: string;
+                export const IsRequired: string;
+                export const ModifiedBy: string;
+                export const ModifiedDate: string;
+            }
+
             namespace Language {
                 export const LanguageId: string;
                 export const LanguageName: string;
@@ -41,6 +65,17 @@ namespace texts {
                 export const UserId: string;
                 export const UserImage: string;
                 export const Username: string;
+            }
+
+            namespace UserFieldSettings {
+                export const CreatedDate: string;
+                export const DialogName: string;
+                export const DisplayOrder: string;
+                export const FieldName: string;
+                export const Id: string;
+                export const IsVisible: string;
+                export const UpdatedDate: string;
+                export const UserId: string;
             }
 
             namespace UserFormEditor {
@@ -213,10 +248,13 @@ namespace texts {
 const Texts: typeof texts = proxyTexts({}, '', {
     Db: {
         Administration: {
+            AdminRequiredFields: {},
+            FormFieldSettings: {},
             Language: {},
             Role: {},
             RolePermission: {},
             User: {},
+            UserFieldSettings: {},
             UserFormEditor: {},
             UserPermission: {},
             UserPreference: {},

@@ -21,11 +21,12 @@ export class TranslationGrid extends EntityGrid<TranslationItem, any> {
         this.element.on('keyup.' + this.uniqueName + ' change.' + this.uniqueName,
             'input.custom-text', e =>
         {
-            var value = trimToNull(Fluent(e.target).val());
+            var value = trimToNull((e.target as HTMLInputElement).value);
             if (value === '') {
                 value = null;
             }
-            this.view.getItemById(Fluent(e.target).data('key')).CustomText = value;
+            const key = (e.target as HTMLElement).dataset.key;
+            this.view.getItemById(key).CustomText = value;
             this.hasChanges = true;
         });
     }

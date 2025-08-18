@@ -2,9 +2,10 @@ import { Decorators, EditorUtils, EntityDialog, stringFormat } from "@serenity-i
 import { UserForm, UserRow, UserService } from "../../ServerTypes/Administration";
 import { MembershipValidationTexts, UserDialogTexts } from "../../ServerTypes/Texts";
 import { UserPermissionDialog } from "../UserPermission/UserPermissionDialog";
+// import { FieldCustomizer } from "../../Common/FieldCustomizer"; // UniversalDialogCustomizer kullanılıyor
 
 @Decorators.registerClass()
-export class UserDialog extends EntityDialog<UserRow, any> {
+export class UserDialog extends EntityDialog<UserRow> {
     protected getFormKey() { return UserForm.formKey; }
     protected getIdProperty() { return UserRow.idProperty; }
     protected getIsActiveProperty() { return UserRow.isActiveProperty; }
@@ -31,6 +32,17 @@ export class UserDialog extends EntityDialog<UserRow, any> {
                 return MembershipValidationTexts.PasswordConfirmMismatch;
         });
     }
+    
+    // UniversalDialogCustomizer otomatik olarak özelleştir butonu ekleyecek
+    // protected onDialogOpen(): void {
+    //     super.onDialogOpen();
+    //     
+    //     // Method 1: Toolbar'a özelleştir butonu ekle
+    //     FieldCustomizer.addCustomizeButton(this, 'Özelleştir', 'fa-sliders');
+    //     
+    //     // Method 2: Form içine buton ekle (Username alanından sonra)
+    //     // FieldCustomizer.addCustomizeButtonToForm(this, 'Username', 'Form Alanlarını Düzenle');
+    // }
 
     protected getToolbarButtons()
     {
@@ -42,10 +54,10 @@ export class UserDialog extends EntityDialog<UserRow, any> {
             icon: 'fa-lock text-green',
             onClick: () =>
             {
-                UserPermissionDialog({
+                new UserPermissionDialog({
                     userID: this.entity.UserId,
                     username: this.entity.Username
-                });
+                } as any).dialogOpen();
             }
         });
 

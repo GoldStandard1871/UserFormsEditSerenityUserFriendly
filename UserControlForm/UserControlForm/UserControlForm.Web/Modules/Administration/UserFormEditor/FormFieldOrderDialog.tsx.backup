@@ -9,6 +9,7 @@ interface FieldOrder {
     order: number;
     visible: boolean;
     width?: string;
+    required?: boolean;
 }
 
 @Decorators.registerClass()
@@ -19,8 +20,11 @@ export class FormFieldOrderDialog extends EntityDialog<UserFormEditorRow> {
     protected getNameProperty() { return UserFormEditorRow.nameProperty; }
     protected getService() { return UserFormEditorService.baseUrl; }
     
+    public dialogType: string = 'UserControlForm.Administration.FormFieldOrderDialog';
+    public fields: FieldOrder[] = null;
+    
     private getDialogType(): string {
-        return 'UserControlForm.Administration.FormFieldOrderDialog';
+        return this.dialogType;
     }
     
     private getFormIdentifier(): string {
@@ -92,29 +96,49 @@ export class FormFieldOrderDialog extends EntityDialog<UserFormEditorRow> {
     }
 
     private getDefaultFieldOrder(): FieldOrder[] {
+        // Eğer dışarıdan fields verilmişse onu kullan
+        if (this.fields && this.fields.length > 0) {
+            return this.fields;
+        }
+        
+        // Yoksa varsayılan alanları döndür
         return [
-            { fieldName: 'FormName', displayName: 'Form Name', order: 0, visible: true, width: '50' },
-            { fieldName: 'Description', displayName: 'Description', order: 1, visible: true, width: '100' },
-            { fieldName: 'Purpose', displayName: 'Purpose', order: 2, visible: true, width: '100' },
-            { fieldName: 'Instructions', displayName: 'Instructions', order: 3, visible: true, width: '100' }
+            { fieldName: 'FormName', displayName: 'Form Name', order: 0, visible: true, width: '50', required: true },
+            { fieldName: 'Description', displayName: 'Description', order: 1, visible: true, width: '100', required: false },
+            { fieldName: 'Purpose', displayName: 'Purpose', order: 2, visible: true, width: '100', required: false },
+            { fieldName: 'Instructions', displayName: 'Instructions', order: 3, visible: true, width: '100', required: false }
         ];
     }
 
     private addDragControls() {
         console.log('Adding drag controls...', this.fieldOrders);
         
-        // Her form alanına drag kontrolü ekle
+        // Önce mevcut içeriği temizle
+        this.element.find('.s-Form').empty();
+        
+        // Her field için özel bir satır oluştur
         this.fieldOrders.forEach(field => {
-            const element = this.form[field.fieldName]?.element;
-            if (!element) {
-                console.log(`Field ${field.fieldName} not found`);
-                return;
-            }
-            
-            const fieldElement = $(element).closest('.field');
-            console.log(`Field ${field.fieldName}:`, fieldElement);
-            
-            if (fieldElement && fieldElement.length) {
+            this.createFieldRow(field);
+        });
+    }
+    
+    private createFieldRow(field: FieldOrder) {
+        const container = this.element.find('.s-Form');
+        if (!container.length) {
+            console.error('Form container bulunamadı');
+            return;
+        }
+        
+        // Dinamik field elementi oluştur
+        const fieldElement = $(`<div class="field"></div>`);
+        const captionElement = $(`<label class="caption">${field.displayName}</label>`);
+        const editorElement = $(`<div class="editor"><input type="text" value="${field.fieldName}" readonly /></div>`);
+        
+        fieldElement.append(captionElement);
+        fieldElement.append(editorElement);
+        container.append(fieldElement);
+        
+        if (fieldElement && fieldElement.length) {
                 // Mevcut kontrolleri temizle
                 fieldElement.find('.field-drag-controls').remove();
                 
@@ -152,10 +176,11 @@ export class FormFieldOrderDialog extends EntityDialog<UserFormEditorRow> {
                 
                 // Width dropdown menü
                 const widthSelect = $('<select class="field-width-select" title="Alan Genişliği"></select>');
-                widthSelect.append('<option value="33">Küçük (33%)</option>');
-                widthSelect.append('<option value="50">Orta (50%)</option>');
-                widthSelect.append('<option value="75">Büyük (75%)</option>');
-                widthSelect.append('<option value="100">Tam (100%)</option>');
+                widthSelect.append('<option value="25">25%</option>');
+                widthSelect.append('<option value="33">33%</option>');
+                widthSelect.append('<option value="50">50%</option>');
+                widthSelect.append('<option value="75">75%</option>');
+                widthSelect.append('<option value="100">100%</option>');
                 widthSelect.val(field.width || '100');
                 widthSelect.on('change', () => {
                     field.width = widthSelect.val() as string;
@@ -165,8 +190,62 @@ export class FormFieldOrderDialog extends EntityDialog<UserFormEditorRow> {
                 });
                 widthSelect.appendTo(controls);
                 
-                // Kontrolü field'ın başına ekle
-                fieldElement.prepend(controls);
+                // Admin ise zorunlu alan checkbox'ı ekle
+                const isAdmin = Authorization.userDefinition?.Username === 'admin';
+                if (isAdmin) {
+                    const requiredCheckbox = $(`<label class="field-required-checkbox" title="Zorunlu Alan">
+                        <input type="checkbox" ${field.required ? 'checked' : ''} />
+                        <span>*</span>
+                    </label>`);
+                    requiredCheckbox.find('input').on('change', (e) => {
+                        field.required = $(e.target).is(':checked');
+                        this.updateFieldRequired(fieldElement, field.required);
+                        // Değişikliği kaydet
+                        this.saveFieldOrder();
+                    });
+                    requiredCheckbox.appendTo(controls);
+                }
+                
+                // Kontrolleri her zaman field'ın en sonuna ekle
+                fieldElement.append(controls);
+                
+                // Zorunlu alan işaretini güncelle
+                if (field.required) {
+                    this.updateFieldRequired(fieldElement, true);
+                }
+                
+                // Field içeriğini düzenle
+                const captionElement = fieldElement.find('.caption');
+                const editorElement = fieldElement.find('.editor');
+                
+                // Caption varsa düzenle
+                if (captionElement.length > 0) {
+                    captionElement.css({
+                        'display': 'block',
+                        'width': '100%',
+                        'float': 'none',
+                        'text-align': 'left',
+                        'padding': '0',
+                        'margin-bottom': '5px'
+                    });
+                }
+                
+                // Editor varsa düzenle
+                if (editorElement.length > 0) {
+                    editorElement.css({
+                        'display': 'block',
+                        'width': '100%',
+                        'float': 'none',
+                        'padding': '0'
+                    });
+                    
+                    // Editor'un parent'ını da düzenle
+                    editorElement.parent().css({
+                        'display': 'block',
+                        'width': '100%',
+                        'padding': '0'
+                    });
+                }
                 
                 // Width'i başlangıçta uygula
                 this.applyFieldWidth(fieldElement, field.width || '100');
@@ -187,7 +266,7 @@ export class FormFieldOrderDialog extends EntityDialog<UserFormEditorRow> {
                     fieldElement.css('background-color', '#fff3cd');
                 }
             }
-        });
+        }
     }
     
     private moveField(field: FieldOrder, direction: number) {
@@ -206,6 +285,26 @@ export class FormFieldOrderDialog extends EntityDialog<UserFormEditorRow> {
             
             // Değişikliği kaydet
             this.saveFieldOrder();
+        }
+    }
+    
+    private updateFieldRequired(fieldElement: JQuery, isRequired: boolean) {
+        const captionElement = fieldElement.find('.caption');
+        
+        if (isRequired) {
+            // Zorunlu alan işareti ekle
+            if (captionElement.find('.required-star').length === 0) {
+                captionElement.append('<sup class="required-star" style="color: red; margin-left: 2px;">*</sup>');
+            }
+            
+            // Input'a required attribute ekle
+            fieldElement.find('input, textarea, select').attr('required', 'required');
+        } else {
+            // Zorunlu alan işaretini kaldır
+            captionElement.find('.required-star').remove();
+            
+            // Required attribute'u kaldır
+            fieldElement.find('input, textarea, select').removeAttr('required');
         }
     }
     
@@ -275,8 +374,14 @@ export class FormFieldOrderDialog extends EntityDialog<UserFormEditorRow> {
         
         const formContainer = $(formNameElement).closest('.categories');
         
-        // Container'a clearfix ve row class ekle
-        formContainer.addClass('clearfix row');
+        // Container'a flexbox layout ekle
+        formContainer.removeClass('row clearfix');
+        formContainer.css({
+            'display': 'flex',
+            'flex-wrap': 'wrap',
+            'align-items': 'flex-start',
+            'align-content': 'flex-start'
+        });
         
         // Önce tüm alanları ekle
         this.fieldOrders.sort((a, b) => a.order - b.order).forEach(field => {
@@ -336,21 +441,33 @@ export class FormFieldOrderDialog extends EntityDialog<UserFormEditorRow> {
     }
 
     private applyFieldWidth(fieldElement: JQuery, width: string) {
-        // Tüm Bootstrap col class'larını kaldır
-        fieldElement.removeClass('col-1 col-2 col-3 col-4 col-5 col-6 col-7 col-8 col-9 col-10 col-11 col-12 col-sm-1 col-sm-2 col-sm-3 col-sm-4 col-sm-5 col-sm-6 col-sm-7 col-sm-8 col-sm-9 col-sm-10 col-sm-11 col-sm-12 col-md-1 col-md-2 col-md-3 col-md-4 col-md-5 col-md-6 col-md-7 col-md-8 col-md-9 col-md-10 col-md-11 col-md-12 col-lg-1 col-lg-2 col-lg-3 col-lg-4 col-lg-5 col-lg-6 col-lg-7 col-lg-8 col-lg-9 col-lg-10 col-lg-11 col-lg-12');
+        // Tüm width class'larını kaldır
+        fieldElement.removeClass('width-25 width-33 width-50 width-75 width-100 col-1 col-2 col-3 col-4 col-5 col-6 col-7 col-8 col-9 col-10 col-11 col-12 col-sm-1 col-sm-2 col-sm-3 col-sm-4 col-sm-5 col-sm-6 col-sm-7 col-sm-8 col-sm-9 col-sm-10 col-sm-11 col-sm-12 col-md-1 col-md-2 col-md-3 col-md-4 col-md-5 col-md-6 col-md-7 col-md-8 col-md-9 col-md-10 col-md-11 col-md-12 col-lg-1 col-lg-2 col-lg-3 col-lg-4 col-lg-5 col-lg-6 col-lg-7 col-lg-8 col-lg-9 col-lg-10 col-lg-11 col-lg-12');
         
-        // Width değerine göre Bootstrap class ekle
-        if (width === '33') {
-            fieldElement.addClass('col-12 col-sm-6 col-md-4 col-lg-4');
-        } else if (width === '50') {
-            fieldElement.addClass('col-12 col-sm-12 col-md-6 col-lg-6');
-        } else if (width === '75') {
-            fieldElement.addClass('col-12 col-sm-12 col-md-9 col-lg-9');
-        } else {
-            fieldElement.addClass('col-12');
+        // Inline style ile width uygula
+        const widthValue = width || '100';
+        
+        // Padding hesaplaması
+        let paddingValue = 7.5;
+        if (widthValue === '100') {
+            paddingValue = 0;
         }
         
-        console.log(`Applied col class for width ${width} to field`, fieldElement);
+        fieldElement.css({
+            'flex': `0 0 ${widthValue}%`,
+            'max-width': `${widthValue}%`,
+            'width': `${widthValue}%`,
+            'align-self': 'flex-start',
+            'padding': `0 ${paddingValue}px`,
+            'margin-bottom': '20px',
+            'box-sizing': 'border-box',
+            'position': 'relative'
+        });
+        
+        // Width class'ı da ekle (CSS fallback için)
+        fieldElement.addClass(`width-${widthValue}`);
+        
+        console.log(`Applied width ${widthValue}% to field with inline styles`, fieldElement);
     }
 
     protected getToolbarButtons(): ToolButton[] {

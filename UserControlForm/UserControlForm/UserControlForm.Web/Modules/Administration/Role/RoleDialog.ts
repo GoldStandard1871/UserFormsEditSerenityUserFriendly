@@ -2,11 +2,12 @@ import { Decorators, EntityDialog } from "@serenity-is/corelib";
 import { RolePermissionDialog } from "../RolePermission/RolePermissionDialog";
 import { RoleRow, RoleForm, RoleService } from "../../ServerTypes/Administration";
 import { RolePermissionDialogTexts } from "../../ServerTypes/Texts";
+// import { FieldCustomizer } from "../../Common/FieldCustomizer"; // UniversalDialogCustomizer kullanılıyor
 
 const editPermissions = "edit-permissions";
 
 @Decorators.registerClass('UserControlForm.Administration.RoleDialog')
-export class RoleDialog extends EntityDialog<RoleRow, any> {
+export class RoleDialog extends EntityDialog<RoleRow> {
     protected getFormKey() { return RoleForm.formKey; }
     protected getIdProperty() { return RoleRow.idProperty; }
     protected getLocalTextPrefix() { return RoleRow.localTextPrefix; }
@@ -14,6 +15,14 @@ export class RoleDialog extends EntityDialog<RoleRow, any> {
     protected getService() { return RoleService.baseUrl; }
 
     protected form = new RoleForm(this.idPrefix);
+    
+    // UniversalDialogCustomizer otomatik olarak özelleştir butonu ekleyecek
+    // protected onDialogOpen(): void {
+    //     super.onDialogOpen();
+    //     
+    //     // Form içine özelleştir butonu ekle (RoleName alanından sonra)
+    //     FieldCustomizer.addCustomizeButtonToForm(this, 'RoleName', 'Alanları Düzenle');
+    // }
 
     protected getToolbarButtons() {
         let buttons = super.getToolbarButtons();
@@ -23,10 +32,10 @@ export class RoleDialog extends EntityDialog<RoleRow, any> {
             cssClass: editPermissions,
             icon: 'fa-lock text-green',
             onClick: () => {
-                RolePermissionDialog({
+                new RolePermissionDialog({
                     roleID: this.entity.RoleId,
                     roleName: this.entity.RoleName
-                });
+                } as any).dialogOpen();
             }
         });
 

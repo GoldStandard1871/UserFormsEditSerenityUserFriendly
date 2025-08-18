@@ -1,9 +1,11 @@
+using Serenity.Localization;
+
 namespace UserControlForm;
 
 [NestedLocalTexts(Prefix = "Navigation.")]
 public static partial class SiteNavigationTexts
 {
-    public static readonly LocalText Dashboard = "Dashboard";
-    public static readonly LocalText LogoutLink = "Logout";
-    public static readonly LocalText SiteTitle = "UserControlForm";
+    public static readonly LocalText Dashboard = new("Dashboard");
+    public static readonly LocalText LogoutLink = new("Logout");
+    public static readonly LocalText SiteTitle = new("UserControlForm");
 }

@@ -1,4 +1,4 @@
-import { Decorators, EntityDialog, ToolButton, Widget, WidgetProps, alertDialog, confirmDialog, notifyError, notifySuccess, notifyWarning } from '@serenity-is/corelib';
+    import { Decorators, EntityDialog, ToolButton, Widget, WidgetProps, alertDialog, confirmDialog, notifyError, notifySuccess, notifyWarning, Authorization } from '@serenity-is/corelib';
 import { UserFormEditorForm, UserFormEditorRow, UserFormEditorService } from '../../ServerTypes/Administration';
 // import { UserFormDesigner } from './UserFormDesigner';
 
@@ -35,6 +35,11 @@ export class UserFormEditorDialog extends EntityDialog<UserFormEditorRow> {
         //     element: designerDiv[0],
         //     value: this.entity.FormDesign ? JSON.parse(this.entity.FormDesign) : null
         // });
+        
+        // Özelleştirmeleri uygula
+        setTimeout(() => {
+            this.applyFormCustomizations();
+        }, 100);
     }
     
     public loadNewAndOpenDialog(asPanel?: boolean): void {
@@ -47,6 +52,16 @@ export class UserFormEditorDialog extends EntityDialog<UserFormEditorRow> {
 
     protected getToolbarButtons(): ToolButton[] {
         const buttons = super.getToolbarButtons();
+        
+        // Özelleştir butonu - UniversalDialogCustomizer kullanılıyor, bu kapatıldı
+        // buttons.push({
+        //     title: 'Özelleştir',
+        //     cssClass: 'customize-fields-button',
+        //     icon: 'fa-sliders',
+        //     onClick: () => {
+        //         this.openCustomizationDialog();
+        //     }
+        // });
         
         // Save as User Preference butonu ekle
         buttons.push({
@@ -183,6 +198,218 @@ export class UserFormEditorDialog extends EntityDialog<UserFormEditorRow> {
             } else {
                notifyWarning("No saved design found for your user.");
             }
+        });
+    }
+    
+    private openCustomizationDialog() {
+        // Form alanlarını hazırla
+        const fields = [];
+        const self = this;
+        
+        // Form property'lerini kullan
+        const form = this.form;
+        if (form) {
+            for (const propertyName in form) {
+                if (form.hasOwnProperty(propertyName) && form[propertyName]) {
+                    const widget = form[propertyName];
+                    
+                    // Element kontrolü
+                    if (!widget.element) continue;
+                    
+                    const element = $(widget.element);
+                    const field = element.closest('.field');
+                    
+                    if (field.length === 0) continue;
+                    
+                    const caption = field.find('.caption');
+                    let displayName = caption.contents()
+                        .filter(function() { return this.nodeType === 3; })
+                        .text().trim();
+                        
+                    if (!displayName) {
+                        displayName = propertyName;
+                    }
+                    
+                    // FormDesign alanını hariç tut
+                    if (propertyName === 'FormDesign') continue;
+                    
+                    // Zorunlu alan kontrolü
+                    const isRequired = caption.find('sup').length > 0 || 
+                                      element.attr('required') === 'required';
+                    
+                    fields.push({
+                        fieldName: propertyName,
+                        displayName: displayName,
+                        order: fields.length,
+                        visible: field.is(':visible'),
+                        width: '100',
+                        required: isRequired
+                    });
+                }
+            }
+        }
+        
+        // FormFieldOrderDialogNew'i import et ve aç
+        import('./FormFieldOrderDialogNew').then(module => {
+            const dialog = new module.FormFieldOrderDialogNew();
+            
+            // Dialog tipini ayarla
+            dialog.dialogType = 'UserFormEditorDialog';
+            
+            // Alanları geçir
+            dialog.fields = fields;
+            
+            // Dialog kapandığında özelleştirmeleri uygula
+            dialog.dialogClose = () => {
+                // Özelleştirmeleri yeniden yükle ve uygula
+                setTimeout(() => {
+                    self.applyFormCustomizations();
+                }, 100);
+            };
+            
+            dialog.dialogOpen();
+        });
+    }
+    
+    private applyFormCustomizations() {
+        const userId = Authorization.userDefinition?.UserId || Authorization.userId;
+        const userKey = `FieldCustomization:UserFormEditorDialog:User${userId}`;
+        const globalRequiredKey = `FieldCustomization:UserFormEditorDialog:GlobalRequired`;
+        
+        // Önce global zorunlu alan bilgilerini yükle
+        UserFormEditorService.GetUserFormPreference({
+            PreferenceKey: globalRequiredKey
+        }, globalResponse => {
+            let globalRequiredFields: string[] = [];
+            
+            if (globalResponse.FormDesign) {
+                try {
+                    const globalData = JSON.parse(globalResponse.FormDesign);
+                    globalRequiredFields = globalData.requiredFields || [];
+                    console.log('Global zorunlu alanlar yüklendi:', globalRequiredFields);
+                } catch (e) {
+                    console.error('Global zorunlu alan bilgileri yüklenemedi:', e);
+                }
+            }
+            
+            // Sonra kullanıcı özelleştirmelerini yükle
+            UserFormEditorService.GetUserFormPreference({
+                PreferenceKey: userKey
+            }, response => {
+                const form = this.form;
+                if (!form) return;
+                
+                // Önce global zorunlu alanları uygula
+                globalRequiredFields.forEach(fieldName => {
+                    const widget = form[fieldName];
+                    if (!widget || !widget.element) return;
+                    
+                    const fieldElement = $(widget.element).closest('.field');
+                    if (fieldElement.length === 0) return;
+                    
+                    const caption = fieldElement.find('.caption');
+                    const existingRequired = caption.find('sup');
+                    
+                    if (existingRequired.length === 0) {
+                        caption.append('<sup style="color: red;">*</sup>');
+                    }
+                });
+                
+                // Sonra kullanıcı özelleştirmelerini uygula (görünürlük, genişlik vb.)
+                if (response.FormDesign) {
+                    try {
+                        const savedData = JSON.parse(response.FormDesign);
+                        if (!savedData.fields || savedData.fields.length === 0) return;
+                        
+                        savedData.fields.forEach((customField: any) => {
+                            const widget = form[customField.fieldName];
+                            if (!widget || !widget.element) return;
+                            
+                            const fieldElement = $(widget.element).closest('.field');
+                            if (fieldElement.length === 0) return;
+                            
+                            // Görünürlük
+                            if (!customField.visible) {
+                                fieldElement.hide();
+                            } else {
+                                fieldElement.show();
+                            }
+                            
+                            // Zorunluluk - Global zorunlu alanlar listesinde varsa zorunlu yap
+                            const caption = fieldElement.find('.caption');
+                            const existingRequired = caption.find('sup');
+                            
+                            // Global zorunlu alan veya kullanıcı tarafından zorunlu işaretlenmiş
+                            const isRequired = globalRequiredFields.includes(customField.fieldName) || customField.required;
+                            
+                            if (isRequired) {
+                                if (existingRequired.length === 0) {
+                                    caption.append('<sup style="color: red;">*</sup>');
+                                }
+                            } else if (!globalRequiredFields.includes(customField.fieldName)) {
+                                // Global zorunlu değilse ve kullanıcı da zorunlu yapmamışsa kaldır
+                                existingRequired.remove();
+                            }
+                        });
+                        
+                        notifySuccess('Form özelleştirmeleri uygulandı');
+                    } catch (e) {
+                        console.error('Özelleştirme uygulama hatası:', e);
+                    }
+                } else {
+                    // Kullanıcı özelleştirmesi yoksa sadece global zorunlu alanlar uygulandı
+                    if (globalRequiredFields.length > 0) {
+                        notifySuccess('Zorunlu alan ayarları uygulandı');
+                    }
+                }
+            });
+        }, error => {
+            // Global bilgi yüklenemese bile kullanıcı özelleştirmelerini yükle
+            UserFormEditorService.GetUserFormPreference({
+                PreferenceKey: userKey
+            }, response => {
+                if (!response.FormDesign) return;
+                
+                try {
+                    const savedData = JSON.parse(response.FormDesign);
+                    if (!savedData.fields || savedData.fields.length === 0) return;
+                    
+                    const form = this.form;
+                    if (!form) return;
+                    
+                    // Özelleştirmeleri uygula
+                    savedData.fields.forEach((customField: any) => {
+                        const widget = form[customField.fieldName];
+                        if (!widget || !widget.element) return;
+                        
+                        const fieldElement = $(widget.element).closest('.field');
+                        if (fieldElement.length === 0) return;
+                        
+                        // Görünürlük
+                        if (!customField.visible) {
+                            fieldElement.hide();
+                        } else {
+                            fieldElement.show();
+                        }
+                        
+                        // Zorunluluk
+                        const caption = fieldElement.find('.caption');
+                        const existingRequired = caption.find('sup');
+                        
+                        if (customField.required) {
+                            if (existingRequired.length === 0) {
+                                caption.append('<sup style="color: red;">*</sup>');
+                            }
+                        } else {
+                            existingRequired.remove();
+                        }
+                    });
+                    
+                    notifySuccess('Form özelleştirmeleri uygulandı');
+                } catch (e) {
+                    console.error('Özelleştirme uygulama hatası:', e);
+                }
+            });
         });
     }
 }

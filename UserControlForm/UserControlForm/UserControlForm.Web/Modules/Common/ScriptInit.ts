@@ -1,6 +1,7 @@
 import { Config, ErrorHandling, HtmlContentEditor, TranslationConfig, getjQuery } from "@serenity-is/corelib";
 import { gridDefaults } from "@serenity-is/sleekgrid";
 import { getLanguageList } from "./Helpers/LanguageList";
+import { DialogFieldCustomizer } from "./DialogFieldCustomizer";
 
 Config.rootNamespaces.push('UserControlForm');
 TranslationConfig.getLanguageList = getLanguageList;
@@ -15,3 +16,8 @@ if ($?.fn?.colorbox) {
 
 window.onerror = ErrorHandling.runtimeErrorHandler;
 window.addEventListener('unhandledrejection', ErrorHandling.unhandledRejectionHandler);
+
+// Dialog Field Customizer - Yeni temiz sistem
+DialogFieldCustomizer.initialize();
+
+console.log('ScriptInit.ts yüklendi');

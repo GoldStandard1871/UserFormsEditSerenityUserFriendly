@@ -2,12 +2,12 @@ import { Decorators, EntityGrid, ToolButton } from '@serenity-is/corelib';
 import { UserFormEditorColumns, UserFormEditorRow, UserFormEditorService } from '../../ServerTypes/Administration';
 import { UserFormEditorDialog } from './UserFormEditorDialog';
 import { SimpleFormDialog } from '../SimpleForm/SimpleFormDialog';
-import { FormFieldOrderDialog } from './FormFieldOrderDialog';
+import { FormFieldOrderDialogNew } from './FormFieldOrderDialogNew';
 
 @Decorators.registerClass()
 export class UserFormEditorGrid extends EntityGrid<UserFormEditorRow> {
     protected getColumnsKey() { return UserFormEditorColumns.columnsKey; }
-    protected getDialogType() { return FormFieldOrderDialog; }
+    protected getDialogType() { return UserFormEditorDialog; }
     protected getIdProperty() { return UserFormEditorRow.idProperty; }
     protected getInsertPermission() { return UserFormEditorRow.insertPermission; }
     protected getLocalTextPrefix() { return UserFormEditorRow.localTextPrefix; }

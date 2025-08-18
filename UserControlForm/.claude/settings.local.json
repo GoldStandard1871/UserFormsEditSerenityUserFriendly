@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet run:*)",
+      "Bash(npm run build:*)",
+      "Bash(powershell:*)",
+      "Bash(dotnet build)",
+      "Bash(move:*)",
+      "Bash(ren:*)",
+      "Bash(del UserFormEditorPage.cs)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}

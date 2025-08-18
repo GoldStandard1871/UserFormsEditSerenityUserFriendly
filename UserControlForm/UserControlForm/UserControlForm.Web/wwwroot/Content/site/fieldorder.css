@@ -1,16 +1,19 @@
-/* Field Drag Controls */
+/* Field Drag Controls - Alanın altında */
 .field-drag-controls {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 5px;
-    margin-right: 10px;
-    float: left;
-    z-index: 10;
-    position: relative;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    background: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 4px !important;
+    padding: 4px !important;
+    margin-top: 8px !important;
+    z-index: 10 !important;
+    position: relative !important;
+    width: 100% !important;
+    float: none !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
 }
 
 .s-FormFieldOrderDialog .field {
@@ -88,13 +91,20 @@
 }
 
 .field-drag-controls button {
-    padding: 5px 8px;
-    border: 1px solid #ddd;
+    padding: 2px 5px;
+    border: 1px solid #dee2e6;
     background: white;
-    color: #666;
+    color: #6c757d;
     cursor: pointer;
     border-radius: 3px;
     transition: all 0.2s;
+    font-size: 11px;
+    line-height: 1.2;
+    min-width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .field-drag-controls button:hover {
@@ -132,14 +142,15 @@
 }
 
 .field-drag-controls .field-width-select {
-    padding: 5px;
-    border: 1px solid #ddd;
+    padding: 2px 4px;
+    border: 1px solid #dee2e6;
     background: white;
-    color: #666;
+    color: #495057;
     cursor: pointer;
     border-radius: 3px;
-    font-size: 12px;
-    min-width: 100px;
+    font-size: 11px;
+    min-width: 90px;
+    height: 24px;
     transition: all 0.2s;
 }
 
@@ -151,6 +162,35 @@
     outline: none;
     border-color: #007bff;
     box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+/* Zorunlu alan checkbox stili */
+.field-drag-controls .field-required-checkbox {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 5px;
+    cursor: pointer;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
+    padding: 2px 6px;
+    height: 24px;
+}
+
+.field-drag-controls .field-required-checkbox input[type="checkbox"] {
+    margin: 0 3px 0 0;
+    cursor: pointer;
+}
+
+.field-drag-controls .field-required-checkbox span {
+    color: #dc3545;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.field-drag-controls .field-required-checkbox:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
 }
 
 /* Dialog genişliğini artır */
@@ -167,14 +207,30 @@
     overflow: visible;
 }
 
-/* Form container için Bootstrap row */
+/* Form container için Flexbox kullan */
 .s-FormFieldOrderDialog .s-PropertyGrid .categories,
 .s-FormFieldOrderDialog .categories {
     display: flex !important;
     flex-wrap: wrap !important;
-    margin-left: -15px !important;
-    margin-right: -15px !important;
-    width: auto !important;
+    align-items: flex-start !important;
+    align-content: flex-start !important;
+    width: 100% !important;
+    margin: 0 -7.5px !important;
+}
+
+/* Dialog içindeki tüm field container'ları için */
+.s-FormFieldOrderDialog .s-PropertyGrid,
+.s-FormFieldOrderDialog .s-Form {
+    display: block !important;
+}
+
+/* Serenity'nin vertical-align stilini override et */
+.s-FormFieldOrderDialog .field,
+.s-FormFieldOrderDialog .categories .field,
+.s-FormFieldOrderDialog .field[class*="col-"] {
+    vertical-align: top !important;
+    margin-bottom: 0 !important;
+    align-self: start !important; /* Grid item'ı üstte tut */
 }
 
 /* Clearfix for float layout */
@@ -193,14 +249,15 @@
     display: table;
 }
 
-/* Bootstrap grid sistemi için genel field düzeni */
+/* Field düzeni */
 .s-FormFieldOrderDialog .field,
 .s-FormFieldOrderDialog .categories .field {
     position: relative !important;
     min-height: 1px !important;
-    padding-right: 15px !important;
-    padding-left: 15px !important;
+    padding: 0 7.5px !important;
+    margin-bottom: 15px !important;
     box-sizing: border-box !important;
+    align-self: flex-start !important;
 }
 
 /* Tüm bootstrap col sınıfları için temel stil */
@@ -212,70 +269,55 @@
     padding-left: 15px !important;
 }
 
-/* Bootstrap responsive grid sistemi */
-.field.col-12,
-.s-FormFieldOrderDialog .field.col-12,
-.s-FormFieldOrderDialog .categories .field.col-12 {
-    flex: 0 0 100% !important;
-    max-width: 100% !important;
+/* Width-based field sizing - daha spesifik selector */
+.s-FormFieldOrderDialog .s-PropertyGrid .categories .field.width-25,
+.s-FormFieldOrderDialog .categories .field.width-25 {
+    flex: 0 0 calc(25% - 15px) !important;
+    max-width: calc(25% - 15px) !important;
+    width: calc(25% - 15px) !important;
 }
 
-@media (min-width: 576px) {
-    .field.col-sm-6,
-    .s-FormFieldOrderDialog .field.col-sm-6 {
-        flex: 0 0 50% !important;
-        max-width: 50% !important;
-    }
-    .field.col-sm-12,
-    .s-FormFieldOrderDialog .field.col-sm-12 {
-        flex: 0 0 100% !important;
-        max-width: 100% !important;
-    }
+.s-FormFieldOrderDialog .s-PropertyGrid .categories .field.width-33,
+.s-FormFieldOrderDialog .categories .field.width-33 {
+    flex: 0 0 calc(33.333% - 15px) !important;
+    max-width: calc(33.333% - 15px) !important;
+    width: calc(33.333% - 15px) !important;
 }
 
-@media (min-width: 768px) {
-    .field.col-md-4,
-    .s-FormFieldOrderDialog .field.col-md-4 {
-        flex: 0 0 33.33333% !important;
-        max-width: 33.33333% !important;
-    }
-    .field.col-md-6,
-    .s-FormFieldOrderDialog .field.col-md-6 {
-        flex: 0 0 50% !important;
-        max-width: 50% !important;
-    }
-    .field.col-md-9,
-    .s-FormFieldOrderDialog .field.col-md-9 {
-        flex: 0 0 75% !important;
-        max-width: 75% !important;
-    }
-    .field.col-md-12,
-    .s-FormFieldOrderDialog .field.col-md-12 {
-        flex: 0 0 100% !important;
-        max-width: 100% !important;
-    }
+.s-FormFieldOrderDialog .s-PropertyGrid .categories .field.width-50,
+.s-FormFieldOrderDialog .categories .field.width-50 {
+    flex: 0 0 calc(50% - 15px) !important;
+    max-width: calc(50% - 15px) !important;
+    width: calc(50% - 15px) !important;
 }
 
-@media (min-width: 992px) {
-    .field.col-lg-4,
-    .s-FormFieldOrderDialog .field.col-lg-4 {
-        flex: 0 0 33.33333% !important;
-        max-width: 33.33333% !important;
-    }
-    .field.col-lg-6,
-    .s-FormFieldOrderDialog .field.col-lg-6 {
-        flex: 0 0 50% !important;
-        max-width: 50% !important;
-    }
-    .field.col-lg-9,
-    .s-FormFieldOrderDialog .field.col-lg-9 {
-        flex: 0 0 75% !important;
-        max-width: 75% !important;
-    }
-    .field.col-lg-12,
-    .s-FormFieldOrderDialog .field.col-lg-12 {
+.s-FormFieldOrderDialog .s-PropertyGrid .categories .field.width-75,
+.s-FormFieldOrderDialog .categories .field.width-75 {
+    flex: 0 0 calc(75% - 15px) !important;
+    max-width: calc(75% - 15px) !important;
+    width: calc(75% - 15px) !important;
+}
+
+.s-FormFieldOrderDialog .s-PropertyGrid .categories .field.width-100,
+.s-FormFieldOrderDialog .categories .field.width-100 {
+    flex: 0 0 calc(100% - 15px) !important;
+    max-width: calc(100% - 15px) !important;
+    width: calc(100% - 15px) !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .s-FormFieldOrderDialog .field.width-25,
+    .s-FormFieldOrderDialog .field.width-33,
+    .s-FormFieldOrderDialog .field.width-50,
+    .s-FormFieldOrderDialog .field.width-75,
+    .s-FormFieldOrderDialog .categories .field.width-25,
+    .s-FormFieldOrderDialog .categories .field.width-33,
+    .s-FormFieldOrderDialog .categories .field.width-50,
+    .s-FormFieldOrderDialog .categories .field.width-75 {
         flex: 0 0 100% !important;
         max-width: 100% !important;
+        width: 100% !important;
     }
 }
 
@@ -307,15 +349,40 @@
 
 /* Label ve input düzenlemesi */
 .s-FormFieldOrderDialog .field label.caption {
-    display: block;
-    margin-bottom: 5px;
+    display: block !important;
+    margin-bottom: 5px !important;
     padding-left: 0 !important;
+    padding-right: 0 !important;
     text-align: left !important;
+    width: auto !important;
+    float: none !important;
 }
 
 /* Field içeriğinin hizalanması */
 .s-FormFieldOrderDialog .field .editor {
     padding-left: 0 !important;
+    padding-right: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    float: none !important;
+}
+
+/* Editor wrapper'ı düzenle */
+.s-FormFieldOrderDialog .field > div:not(.field-drag-controls) {
+    width: 100% !important;
+}
+
+/* Serenity'nin inline-block ve vertical-align stillerini override et */
+.s-FormFieldOrderDialog .field > * {
+    vertical-align: top !important;
+}
+
+/* Caption ve editor'ü block element yap */
+.s-FormFieldOrderDialog .field .caption,
+.s-FormFieldOrderDialog .field .editor,
+.s-FormFieldOrderDialog .field label {
+    display: block !important;
+    vertical-align: top !important;
 }
 
 /* Kontrollerin field içindeki konumu */

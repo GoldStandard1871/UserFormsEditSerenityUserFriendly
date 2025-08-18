@@ -1,4 +1,5 @@
 ﻿using Serenity.Navigation;
 using MyPages = UserControlForm.Integration.Pages;
 
-[assembly: NavigationLink(int.MaxValue, "Integration/Movie", typeof(MyPages.MoviePage), icon: null)]
+[assembly: NavigationMenu(5000, "Integration", icon: "fa-plug")]
+[assembly: NavigationLink(5100, "Integration/Movies", typeof(MyPages.MoviePage), icon: "fa-film")]

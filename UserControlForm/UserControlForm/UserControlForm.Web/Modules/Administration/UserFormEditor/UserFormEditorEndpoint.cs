@@ -115,6 +115,75 @@ public class UserFormEditorEndpoint : ServiceEndpoint
             FormDesign = preference?.Value
         };
     }
+
+    [HttpPost, AuthorizeUpdate(typeof(MyRow))]
+    public SaveResponse SaveGlobalPreference(IUnitOfWork uow, SaveGlobalPreferenceRequest request,
+        [FromServices] IPermissionService permissions)
+    {
+        // Sadece admin'ler global ayar kaydedebilir
+        if (!permissions.HasPermission("Administration:General"))
+            throw new ValidationError("Only administrators can save global preferences");
+
+        if (string.IsNullOrEmpty(request.PreferenceKey))
+            throw new ArgumentNullException(nameof(request.PreferenceKey));
+
+        if (string.IsNullOrEmpty(request.FormDesign))
+            throw new ArgumentNullException(nameof(request.FormDesign));
+
+        // UserId = 0 global ayar demektir
+        var userId = request.UserId ?? 0;
+
+        // Check if preference exists
+        var existing = uow.Connection.TryFirst<UserPreferenceRow>(q => q
+            .Select(UserPreferenceRow.Fields.UserPreferenceId)
+            .Where(UserPreferenceRow.Fields.UserId == userId &&
+                   UserPreferenceRow.Fields.PreferenceType == "UserFormDesign" &&
+                   UserPreferenceRow.Fields.Name == request.PreferenceKey));
+
+        if (existing != null)
+        {
+            // Update existing
+            uow.Connection.UpdateById(new UserPreferenceRow
+            {
+                UserPreferenceId = existing.UserPreferenceId,
+                Value = request.FormDesign
+            });
+        }
+        else
+        {
+            // Insert new
+            uow.Connection.Insert(new UserPreferenceRow
+            {
+                UserId = userId,
+                PreferenceType = "UserFormDesign",
+                Name = request.PreferenceKey,
+                Value = request.FormDesign
+            });
+        }
+
+        return new SaveResponse();
+    }
+
+    [HttpPost]
+    public GetGlobalPreferenceResponse GetGlobalPreference(IDbConnection connection, GetGlobalPreferenceRequest request)
+    {
+        if (string.IsNullOrEmpty(request.PreferenceKey))
+            throw new ArgumentNullException(nameof(request.PreferenceKey));
+
+        // UserId = 0 olan global ayarı al
+        var userId = request.UserId ?? 0;
+
+        var preference = connection.TryFirst<UserPreferenceRow>(q => q
+            .Select(UserPreferenceRow.Fields.Value)
+            .Where(UserPreferenceRow.Fields.UserId == userId &&
+                   UserPreferenceRow.Fields.PreferenceType == "UserFormDesign" &&
+                   UserPreferenceRow.Fields.Name == request.PreferenceKey));
+
+        return new GetGlobalPreferenceResponse
+        {
+            FormDesign = preference?.Value
+        };
+    }
 }
 
 public class SaveUserFormPreferenceRequest : ServiceRequest
@@ -129,6 +198,24 @@ public class GetUserFormPreferenceRequest : ServiceRequest
 }
 
 public class GetUserFormPreferenceResponse : ServiceResponse
+{
+    public string FormDesign { get; set; }
+}
+
+public class SaveGlobalPreferenceRequest : ServiceRequest
+{
+    public string PreferenceKey { get; set; }
+    public string FormDesign { get; set; }
+    public int? UserId { get; set; }
+}
+
+public class GetGlobalPreferenceRequest : ServiceRequest
+{
+    public string PreferenceKey { get; set; }
+    public int? UserId { get; set; }
+}
+
+public class GetGlobalPreferenceResponse : ServiceResponse
 {
     public string FormDesign { get; set; }
 }
